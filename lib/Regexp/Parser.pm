@@ -70,6 +70,7 @@ sub regex {
     maxpar => 0,
     nparen => 0,
     captures => [],
+    named_captures => {},
     flags => [$init_flags],
     next => ['atom'],
   );
@@ -118,6 +119,14 @@ sub captures {
   $self->parse if $self->{stack};
   return $self->{captures}[--$n] if $n;
   return $self->{captures};
+}
+
+
+sub named_captures {
+  my ($self, $name) = @_;
+  $self->parse if $self->{stack};
+  return $self->{named_captures}{$name} if $name;
+  return $self->{named_captures};
 }
 
 

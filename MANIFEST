@@ -15,4 +15,5 @@ t/04cond.t
 t/05opens.t
 t/06cclass.t
 t/07flags.t
+t/08perl510.t
 t/99misc.t

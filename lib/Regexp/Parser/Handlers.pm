@@ -388,6 +388,7 @@ sub init {
     my ($S) = @_;
     $S->nextchar;
     return $S->object(minmod =>) if ${&Rx} =~ m{ \G \? }xgc;
+    return $S->object(possessive =>) if ${&Rx} =~ m{ \G \+ }xgc;
     return;
   });
 
@@ -829,6 +830,122 @@ sub init {
     }
 
     $S->error($S->RPe_SEQINC);
+  });
+
+  ##
+  ## Perl 5.10+ constructs
+  ##
+
+  # \K (keep, reset match start)
+  $self->add_handler('\K' => sub {
+    my ($S, $cc) = @_;
+    $S->warn($S->RPe_BADESC, "K", " in character class") if $cc;
+    return $S->force_object(anyof_char => 'K') if $cc;
+    return $S->object(keep =>);
+  });
+
+  # \R (generic linebreak)
+  $self->add_handler('\R' => sub {
+    my ($S, $cc) = @_;
+    $S->warn($S->RPe_BADESC, "R", " in character class") if $cc;
+    return $S->force_object(anyof_char => 'R') if $cc;
+    return $S->object(lnbreak =>);
+  });
+
+  # \h (horizontal whitespace)
+  $self->add_handler('\h' => sub {
+    my ($S, $cc) = @_;
+    return $S->force_object(anyof_class => $S->force_object(hspace => 0)) if $cc;
+    return $S->object(hspace => 0);
+  });
+
+  # \H (not horizontal whitespace)
+  $self->add_handler('\H' => sub {
+    my ($S, $cc) = @_;
+    return $S->force_object(anyof_class => $S->force_object(hspace => 1)) if $cc;
+    return $S->object(hspace => 1);
+  });
+
+  # \v (vertical whitespace)
+  $self->add_handler('\v' => sub {
+    my ($S, $cc) = @_;
+    return $S->force_object(anyof_class => $S->force_object(vspace => 0)) if $cc;
+    return $S->object(vspace => 0);
+  });
+
+  # \V (not vertical whitespace)
+  $self->add_handler('\V' => sub {
+    my ($S, $cc) = @_;
+    return $S->force_object(anyof_class => $S->force_object(vspace => 1)) if $cc;
+    return $S->object(vspace => 1);
+  });
+
+  # \k<name> or \k'name' (named backreference)
+  $self->add_handler('\k' => sub {
+    my ($S, $cc) = @_;
+
+    if ($cc) {
+      $S->warn($S->RPe_BADESC, "k", " in character class");
+      return $S->force_object(anyof_char => 'k');
+    }
+
+    if (${&Rx} =~ m{ \G < ([^>]+) > }xgc) {
+      return $S->object(named_ref => $1, "\\k<$1>");
+    }
+    elsif (${&Rx} =~ m{ \G ' ([^']+) ' }xgc) {
+      return $S->object(named_ref => $1, "\\k'$1'");
+    }
+
+    $S->error($S->RPe_BADESC, "k", "");
+  });
+
+  # (?<name>...) named capture group
+  # We override the existing '(?<' handler to also support named captures
+  $self->add_handler('(?<' => sub {
+    my ($S) = @_;
+    my $c = '(?<';
+
+    # Check for lookbehind first: (?<= and (?<!
+    if (${&Rx} =~ m{ \G ([!=]) }xgcs) {
+      my $n = "$c$1";
+      return $S->$n if $S->can($n);
+    }
+
+    # Named capture: (?<name>...)
+    if (${&Rx} =~ m{ \G ([A-Za-z_]\w*) > }xgc) {
+      my $name = $1;
+      push @{ $S->{next} }, qw< c) atom >;
+      &SIZE_ONLY ? ++$S->{maxpar} : ++$S->{nparen};
+      push @{ $S->{flags} }, &Rf;
+      $S->{named_captures}{$name} = $S->{nparen} unless &SIZE_ONLY;
+      return $S->object(named_open => $S->{nparen}, $name);
+    }
+
+    $S->error($S->RPe_NOTREC, 2, substr(${&Rx}, &RxPOS - 2));
+  });
+
+  # (?'name'...) alternate named capture syntax
+  $self->add_handler("(?\'" => sub {
+    my ($S) = @_;
+
+    if (${&Rx} =~ m{ \G ([A-Za-z_]\w*) ' }xgc) {
+      my $name = $1;
+      push @{ $S->{next} }, qw< c) atom >;
+      &SIZE_ONLY ? ++$S->{maxpar} : ++$S->{nparen};
+      push @{ $S->{flags} }, &Rf;
+      $S->{named_captures}{$name} = $S->{nparen} unless &SIZE_ONLY;
+      return $S->object(named_open => $S->{nparen}, $name);
+    }
+
+    $S->error($S->RPe_NOTREC, 1, substr(${&Rx}, &RxPOS - 1));
+  });
+
+  # possessive quantifier modifier (a++, a*+, a?+, a{n,m}+)
+  $self->add_handler('posmod' => sub {
+    my ($S) = @_;
+    $S->nextchar;
+    return $S->object(possessive =>) if ${&Rx} =~ m{ \G \+ }xgc;
+    return;
   });
 }
 
