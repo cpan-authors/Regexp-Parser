@@ -507,7 +507,7 @@ sub init {
       }
 
       if ($ret == \$lhs) {
-        if (${&Rx} =~ m{ \G (?= - ) }xgc) {
+        if (${&Rx} =~ m{ \G (?= - (?! ] | \z ) ) }xgc) {
           if ($lhs->visual =~ /^(?:\[[:.=]|\\[dDsSwWpP])/) {
             $S->warn($S->RPe_FRANGE, $lhs->visual, "");
             $ret = $lhs;
