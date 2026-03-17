@@ -245,7 +245,9 @@ sub qr {
 
   if (@$rx == 1 and $rx->[0]->family eq 'group') {
     my $vis = join "", map $_->qr, @{ $rx->[0]->{data} };
-    return eval('qr/$vis/' . $rx->[0]->on);
+    my $flags = $rx->[0]->on;
+    $flags =~ s/^\^//;  # strip caret prefix for qr// modifier
+    return eval('qr/$vis/' . $flags);
   }
 
   $rx = join "", map($_->qr, @$rx);

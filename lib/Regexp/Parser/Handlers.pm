@@ -576,6 +576,12 @@ sub init {
       $S->error($S->RPe_SEQINC);
     }
 
+    # Perl 5.14+ flag reset: (?^...) means default flags
+    my $caret = 0;
+    if (${&Rx} =~ m{ \G \^ }xgc) {
+      $caret = 1;
+    }
+
     # flag assertion or non-capturing group
     ${&Rx} =~ m{ \G ([a-zA-Z]*) (-? [a-zA-Z]*) }xgc;
     my ($on, $off) = ($1, $2);
@@ -596,17 +602,19 @@ sub init {
       $S->error($S->RPe_NOTREC, &RxPOS - $old, $bad);
     }
 
-    &RxPOS++ if $off =~ s/^-//;
+    if (!$caret) {
+      &RxPOS++ if $off =~ s/^-//;
 
-    for (split //, $off) {
-      &RxPOS++;
-      if (my $f = $S->can("FLAG_$_")) {
-        my $v = $S->$f(0) and $r_off .= $_;
-        $f_off |= $v;
-        next;
+      for (split //, $off) {
+        &RxPOS++;
+        if (my $f = $S->can("FLAG_$_")) {
+          my $v = $S->$f(0) and $r_off .= $_;
+          $f_off |= $v;
+          next;
+        }
+        my $bad = substr ${&Rx}, $old;
+        $S->error($S->RPe_NOTREC, &RxPOS - $old, $bad);
       }
-      my $bad = substr ${&Rx}, $old;
-      $S->error($S->RPe_NOTREC, &RxPOS - $old, $bad);
     }
 
     if (${&Rx} =~ m{ \G ([:)]) }xgc) {
@@ -615,9 +623,13 @@ sub init {
         push @{ $S->{flags} }, &Rf;
         push @{ $S->{next} }, qw< c) atom >;
       }
+      if ($caret) {
+        &Rf = 0;  # reset all flags to default
+      }
       &Rf |= $f_on;
       &Rf &= ~$f_off;
-      return $S->object($type => $r_on, $r_off);
+      my $vis_on = $caret ? "^$r_on" : $r_on;
+      return $S->object($type => $vis_on, $r_off);
     }
 
     &RxPOS++;
