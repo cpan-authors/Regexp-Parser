@@ -7,7 +7,7 @@ WriteMakefile(
     NAME              => 'Regexp::Parser',
     VERSION_FROM      => 'lib/Regexp/Parser.pm', # finds $VERSION
     MIN_PERL_VERSION  => '5.016',
-    PREREQ_PM         => { NEXT => 0 },
+    PREREQ_PM         => {},
     TEST_REQUIRES     => { 'Test::More' => 0 },
     ABSTRACT_FROM  => 'lib/Regexp/Parser.pm', # retrieve abstract from module
     AUTHOR         => 'Jeff japhy Pinyan <japhy@perlmonk.org>',
@@ -22,7 +22,6 @@ WriteMakefile(
             homepage => 'http://wiki.github.com/toddr/Regexp-Parser',
             bugtracker => 'https://github.com/toddr/Regexp-Parser/issues',
             repository => 'http://github.com/toddr/Regexp-Parser/tree/master',
-#            MailingList => 'http://groups.google.com/group/Regexp-Parser',
         },
     },
 );
