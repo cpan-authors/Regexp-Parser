@@ -13,6 +13,16 @@ sub init {
   $self->add_flag('i' => sub { 0x4 });
   $self->add_flag('x' => sub { 0x8 });
 
+  # /a, /d, /l, /u charset flags (Perl 5.14+)
+  # These are mutually exclusive; the last one set wins.
+  $self->add_flag('a' => sub { 0x10 });
+  $self->add_flag('d' => sub { 0x20 });
+  $self->add_flag('l' => sub { 0x40 });
+  $self->add_flag('u' => sub { 0x80 });
+
+  # /n (no-capture) flag (Perl 5.22+)
+  $self->add_flag('n' => sub { 0x100 });
+
   # (useless) /g, /c, /o flags
   $self->add_flag('g' => sub {
     my ($S, $plus) = @_;
@@ -136,6 +146,48 @@ sub init {
     $S->warn($S->RPe_BADESC, "G", " in character class") if $cc;
     return $S->force_object(anyof_char => 'G') if $cc;
     return $S->object(gpos => gpos => '\G');
+  });
+
+  # \g{N}, \g{-N}, \gN backreferences (Perl 5.10+)
+  $self->add_handler('\g' => sub {
+    my ($S, $cc) = @_;
+    if ($cc) {
+      $S->warn($S->RPe_BADESC, "g", " in character class");
+      return $S->force_object(anyof_char => 'g');
+    }
+
+    # \g{...} form
+    if (${&Rx} =~ m{ \G \{ }xgc) {
+      # \g{name} — named backref
+      if (${&Rx} =~ m{ \G ([a-zA-Z_]\w*) \} }xgc) {
+        my $name = $1;
+        return $S->object(gref => $name, "\\g{$name}");
+      }
+      # \g{N} or \g{-N} — numeric (possibly relative)
+      if (${&Rx} =~ m{ \G (-?\d+) \} }xgc) {
+        my $num = $1;
+        my $abs;
+        if ($num < 0) {
+          $abs = (&SIZE_ONLY ? $S->{maxpar} : $S->{nparen}) + $num + 1;
+          $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and $abs < 1;
+        }
+        else {
+          $abs = $num;
+          $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and $abs > $S->{maxpar};
+        }
+        return $S->object(ref => $abs, "\\g{$num}");
+      }
+      $S->error($S->RPe_RBRACE, 'g');
+    }
+
+    # \gN form (no braces, positive only)
+    if (${&Rx} =~ m{ \G (\d+) }xgc) {
+      my $num = $1;
+      $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and $num > $S->{maxpar};
+      return $S->object(ref => $num, "\\g$num");
+    }
+
+    $S->error($S->RPe_BRACES, 'g');
   });
 
   # named (named character)

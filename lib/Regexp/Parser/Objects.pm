@@ -1044,12 +1044,13 @@ use NEXT;
   our @ISA = qw( Regexp::Parser::__object__ );
 
   sub new {
-    my ($class, $rx, $nparen) = @_;
+    my ($class, $rx, $nparen, $vis) = @_;
     my $self = bless {
       rx => $rx,
       flags => $rx->{flags}[-1],
       family => 'ref',
       nparen => $nparen,
+      ($vis ? (vis => $vis) : ()),
     }, $class;
     return $self;
   }
@@ -1066,7 +1067,48 @@ use NEXT;
 
   sub visual {
     my $self = shift;
+    exists $self->{vis} ? $self->{vis} : "\\$self->{nparen}";
+  }
+
+  sub qr {
+    my $self = shift;
+    # Always emit \N format for qr() regardless of visual form
     "\\$self->{nparen}";
+  }
+}
+
+
+{
+  # \g{name} named backreference (Perl 5.10+)
+  package Regexp::Parser::gref;
+  our @ISA = qw( Regexp::Parser::__object__ );
+
+  sub new {
+    my ($class, $rx, $name, $vis) = @_;
+    my $self = bless {
+      rx => $rx,
+      flags => $rx->{flags}[-1],
+      family => 'ref',
+      type => 'gref',
+      name => $name,
+      vis => $vis,
+    }, $class;
+    return $self;
+  }
+
+  sub name {
+    my $self = shift;
+    $self->{name};
+  }
+
+  sub visual {
+    my $self = shift;
+    $self->{vis};
+  }
+
+  sub qr {
+    my $self = shift;
+    "\\g{$self->{name}}";
   }
 }
 
