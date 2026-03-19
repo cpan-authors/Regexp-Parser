@@ -525,7 +525,7 @@ sub init {
           &RxPOS = $before_range;
           $ret = $lhs;
         }
-        elsif ($lhs->visual gt $rhs->visual) {
+        elsif (ord($lhs->data) > ord($rhs->data)) {
           $S->error($S->RPe_IRANGE, $lhs->visual, $rhs->visual);
         }
         else {
