@@ -52,7 +52,16 @@ sub new {
 
 
 sub regex {
-  my ($self, $rx) = @_;
+  my ($self, $rx, $flags) = @_;
+  my $init_flags = 0;
+  if (defined $flags) {
+    for my $ch (split //, $flags) {
+      my $method = "FLAG_$ch";
+      if ($self->can($method)) {
+        $init_flags |= $self->$method;
+      }
+    }
+  }
   %$self = (
     regex => \"$rx",
     len => length $rx,
@@ -61,7 +70,7 @@ sub regex {
     maxpar => 0,
     nparen => 0,
     captures => [],
-    flags => [0],
+    flags => [$init_flags],
     next => ['atom'],
   );
 
@@ -74,7 +83,7 @@ sub regex {
   # reset things, define tree as []
   &RxPOS = 0;
   $self->{tree} = [];
-  $self->{flags} = [0];
+  $self->{flags} = [$init_flags];
   $self->{next} = ['atom'];
 
   return 1;
@@ -362,7 +371,20 @@ You can send the regex to be parsed as the argument to the constructor.
 
 =item $parser->regex($regex)
 
+=item $parser->regex($regex, $flags)
+
 Clears the parser's memory and sets $regex as the regex to be parsed.
+
+If $flags is provided, it should be a string of flag characters (any
+combination of C<m>, C<s>, C<i>, C<x>) that will be pre-set before
+parsing begins.  This is equivalent to wrapping the regex in
+C<(?flags:...)> but without altering the resulting parse tree.
+
+  # parse with /x flag pre-set
+  $parser->regex(' foo [ ] bar ', 'x');
+
+  # parse with /ix flags pre-set
+  $parser->regex('hello', 'ix');
 
 =back
 
