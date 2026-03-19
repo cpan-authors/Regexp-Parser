@@ -789,6 +789,9 @@ use NEXT;
 
   sub raw {
     my $self = shift;
+    if ($self->{on} =~ /^\^/) {
+      return join "", "(?", $self->{on}, ":";
+    }
     join "", "(?", $self->{on},
       (length $self->{off} ? "-" : ""), $self->{off}, ":";
   }
@@ -1383,6 +1386,9 @@ use NEXT;
 
   sub visual {
     my $self = shift;
+    if ($self->{on} =~ /^\^/) {
+      return join "", "(?", $self->{on}, ")";
+    }
     join "", "(?", $self->{on},
       (length $self->{off} ? "-" : ""), $self->{off}, ")";
   }
