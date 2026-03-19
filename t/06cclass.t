@@ -4,7 +4,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 16;
+use Test::More tests => 15;
 use Regexp::Parser;
 
 my $r = Regexp::Parser->new;
