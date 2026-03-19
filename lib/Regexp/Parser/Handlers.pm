@@ -201,6 +201,18 @@ sub init {
     return $S->object(exact => $S->nchar($name), "\\N{$name}");
   });
 
+  # \o{NNN} octal escape (Perl 5.14+)
+  $self->add_handler('\o' => sub {
+    my ($S, $cc) = @_;
+    $S->error($S->RPe_BRACES, 'o') if ${&Rx} !~ m{ \G \{ }xgc;
+    $S->error($S->RPe_RBRACE, 'o') if ${&Rx} !~ m{ \G ([0-7]+) \} }xgc;
+
+    my $num = $1;
+    my $rep = "\\o{$num}";
+    return $S->force_object(anyof_char => chr(oct $num), $rep) if $cc;
+    return $S->object(exact => chr(oct $num), $rep);
+  });
+
   # nprop (not a unicode property)
   $self->add_handler('\P' => sub {
     my ($S, $cc) = @_;
@@ -656,6 +668,10 @@ sub init {
       &RxPOS++;
       if (my $f = $S->can("FLAG_$_")) {
         my $v = $S->$f(1) and $r_on .= $_;
+        # /xx: if x is already on, set the xx bit (Perl 5.26+)
+        if ($_ eq 'x' && ($f_on & $v)) {
+          $f_on |= 0x200;  # FLAG_xx
+        }
         $f_on |= $v;
         next;
       }
@@ -670,6 +686,10 @@ sub init {
         &RxPOS++;
         if (my $f = $S->can("FLAG_$_")) {
           my $v = $S->$f(0) and $r_off .= $_;
+          # -xx: also turn off the xx bit (Perl 5.26+)
+          if ($_ eq 'x' && ($f_off & $v)) {
+            $f_off |= 0x200;  # FLAG_xx
+          }
           $f_off |= $v;
           next;
         }
@@ -1072,6 +1092,74 @@ sub init {
     $S->nextchar;
     return $S->object(possessive =>) if ${&Rx} =~ m{ \G \+ }xgc;
     return;
+  });
+
+  ##
+  ## Perl 5.10+ branch reset group: (?|...)
+  ##
+  $self->add_handler('(?|' => sub {
+    my ($S) = @_;
+    push @{ $S->{next} }, qw< c) atom >;
+    push @{ $S->{flags} }, &Rf;
+    return $S->object(branch_reset =>);
+  });
+
+  ##
+  ## Perl 5.10+ backtracking control verbs: (*VERB) and (*VERB:arg)
+  ## Also Perl 5.28+ alphabetic assertions: (*positive_lookahead:...) etc.
+  ##
+  $self->add_handler('(*' => sub {
+    my ($S) = @_;
+
+    # Match the verb/keyword name
+    if (${&Rx} =~ m{ \G ([A-Za-z_]\w*) }xgc) {
+      my $name = $1;
+
+      # Alphabetic assertion forms (Perl 5.28+)
+      # These are grouping constructs: (*name:pattern)
+      my %alpha_assert = (
+        positive_lookahead  => ['ifmatch',  1],
+        pla                 => ['ifmatch',  1],
+        negative_lookahead  => ['unlessm',  1],
+        nla                 => ['unlessm',  1],
+        positive_lookbehind => ['ifmatch',  -1],
+        plb                 => ['ifmatch',  -1],
+        negative_lookbehind => ['unlessm',  -1],
+        nlb                 => ['unlessm',  -1],
+        atomic              => ['suspend',  undef],
+        script_run          => ['script_run', undef],
+        sr                  => ['script_run', undef],
+        atomic_script_run   => ['asr',      undef],
+        asr                 => ['asr',      undef],
+      );
+
+      if (my $spec = $alpha_assert{$name}) {
+        $S->error($S->RPe_NOTREC, length($name) + 1, "*$name")
+          if ${&Rx} !~ m{ \G : }xgc;
+        push @{ $S->{next} }, qw< c) atom >;
+        push @{ $S->{flags} }, &Rf;
+        my ($type, $dir) = @$spec;
+        return $S->object($type => $dir) if defined $dir;
+        return $S->object($type =>);
+      }
+
+      # Backtracking control verbs (Perl 5.10+)
+      my $arg;
+      if (${&Rx} =~ m{ \G : ([^)]*) }xgc) {
+        $arg = $1;
+      }
+      $S->error($S->RPe_LPAREN) if ${&Rx} !~ m{ \G \) }xgc;
+
+      # Validate known verbs
+      my %known_verb = map { $_ => 1 }
+        qw(ACCEPT FAIL F MARK SKIP PRUNE COMMIT THEN);
+      if (!$known_verb{$name}) {
+        $S->error($S->RPe_NOTREC, length($name) + 1, "*$name");
+      }
+      return $S->object(verb => $name, $arg);
+    }
+
+    $S->error($S->RPe_NOTREC, 1, substr(${&Rx}, &RxPOS - 1));
   });
 }
 
