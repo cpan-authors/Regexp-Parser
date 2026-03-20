@@ -45,10 +45,9 @@ $self->add_handler('sequence' => sub {
 
 ## Testing
 
-- 8 test files in `t/`, 200 tests total
-- Mix of `Test` (legacy) and `Test::More` (newer tests)
-- Tests cover: basic parsing, subclassing, tree walking, conditionals, captures, character classes, flags, Unicode/POSIX
-- `Test.pm`'s `ok($got, $expected)` maps to `Test::More`'s `is()` — watch for this when writing new tests
+- 15 test files in `t/`, 615+ tests total
+- All tests use `Test::More`
+- Tests cover: basic parsing, subclassing, tree walking, conditionals, captures, character classes, flags, Unicode/POSIX, Perl 5.10+ constructs, recursive patterns, round-trip validation, error rejection
 
 ## CI
 
@@ -59,11 +58,10 @@ GitHub Actions: `.github/workflows/{linux,macos,windows}.yml`
 
 ## Known Gaps
 
-These Perl 5.10+ constructs are not yet supported by the parser:
-- `(?|...)` branch reset groups
-- `(*VERB)` backtracking control verbs (`(*FAIL)`, `(*SKIP)`, etc.)
-- Recursive patterns: `(?R)`, `(?1)`, `(?&name)`
-- `\R` (generic newline), `\v`/`\h` (vertical/horizontal whitespace)
+Most Perl 5.10+ constructs are now supported. Remaining gaps:
+- `(?(DEFINE)...)` definition-only groups
+- `(?{ code })` / `(??{ code })` execute correctly at parse time but code blocks are opaque
+- Some exotic `(*VERB:arg)` forms with arguments
 
 ## Gotchas
 
