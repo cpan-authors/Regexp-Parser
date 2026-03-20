@@ -628,6 +628,15 @@ sub init {
       $S->error($S->RPe_SEQINC);
     }
 
+    # (?0) is equivalent to (?R) -- whole-pattern recursion
+    # (?1), (?2), ... -- numbered group recursion
+    # (?+1), (?-1) -- relative group recursion
+    if (${&Rx} =~ m{ \G ( [+-]? [0-9]+ ) \) }xgc) {
+      my $num = $1;
+      my $vis = "(?$num)";
+      return $S->object(recurse => $num, $vis);
+    }
+
     # Perl 5.14+ flag reset: (?^...) means default flags
     my $caret = 0;
     if (${&Rx} =~ m{ \G \^ }xgc) {
@@ -1002,6 +1011,59 @@ sub init {
     }
 
     $S->error($S->RPe_NOTREC, 1, substr(${&Rx}, &RxPOS - 1));
+  });
+
+  # (?R) -- whole-pattern recursion (Perl 5.10+)
+  $self->add_handler('(?R' => sub {
+    my ($S) = @_;
+
+    $S->error($S->RPe_NOTREC, 3, "(?R" . substr(${&Rx}, &RxPOS, 1))
+      unless ${&Rx} =~ m{ \G \) }xgc;
+
+    return $S->object(recurse => 0, '(?R)');
+  });
+
+  # (?&name) -- named subpattern recursion (Perl 5.10+)
+  $self->add_handler('(?&' => sub {
+    my ($S) = @_;
+
+    if (${&Rx} =~ m{ \G ([A-Za-z_]\w*) \) }xgc) {
+      my $name = $1;
+      return $S->object(named_recurse => $name, "(?&$name)");
+    }
+
+    $S->error($S->RPe_NOTREC, 3, "(?&" . substr(${&Rx}, &RxPOS, 5));
+  });
+
+  # (?P<name>...) -- Python-compatible named capture (Perl 5.10+)
+  # (?P=name) -- Python-compatible named backreference (Perl 5.10+)
+  # (?P>name) -- Python-compatible named recursion (Perl 5.10+)
+  $self->add_handler('(?P' => sub {
+    my ($S) = @_;
+
+    # (?P<name>...) named capture
+    if (${&Rx} =~ m{ \G < ([A-Za-z_]\w*) > }xgc) {
+      my $name = $1;
+      push @{ $S->{next} }, qw< c) atom >;
+      &SIZE_ONLY ? ++$S->{maxpar} : ++$S->{nparen};
+      push @{ $S->{flags} }, &Rf;
+      $S->{named_captures}{$name} = $S->{nparen} unless &SIZE_ONLY;
+      return $S->object(named_open => $S->{nparen}, $name);
+    }
+
+    # (?P=name) named backreference
+    if (${&Rx} =~ m{ \G = ([A-Za-z_]\w*) \) }xgc) {
+      my $name = $1;
+      return $S->object(named_ref => $name, "(?P=$name)");
+    }
+
+    # (?P>name) named recursion
+    if (${&Rx} =~ m{ \G > ([A-Za-z_]\w*) \) }xgc) {
+      my $name = $1;
+      return $S->object(named_recurse => $name, "(?P>$name)");
+    }
+
+    $S->error($S->RPe_NOTREC, 3, "(?P" . substr(${&Rx}, &RxPOS, 5));
   });
 
   # possessive quantifier modifier (a++, a*+, a?+, a{n,m}+)

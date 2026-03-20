@@ -1742,6 +1742,76 @@ use NEXT;
 }
 
 
+{
+  # (?R) (?0) (?1) (?+1) (?-1) -- recursive subpatterns (Perl 5.10+)
+  package Regexp::Parser::recurse;
+  our @ISA = qw( Regexp::Parser::__object__ );
+
+  sub new {
+    my ($class, $rx, $num, $vis) = @_;
+    my $self = bless {
+      rx => $rx,
+      flags => $rx->{flags}[-1],
+      family => 'recurse',
+      type => 'recurse',
+      num => $num,
+      vis => $vis,
+    }, $class;
+    return $self;
+  }
+
+  sub num {
+    my $self = shift;
+    $self->{num};
+  }
+
+  sub visual {
+    my $self = shift;
+    $self->{vis};
+  }
+
+  sub qr {
+    my $self = shift;
+    $self->{vis};
+  }
+}
+
+
+{
+  # (?&name) -- named recursive subpattern (Perl 5.10+)
+  package Regexp::Parser::named_recurse;
+  our @ISA = qw( Regexp::Parser::__object__ );
+
+  sub new {
+    my ($class, $rx, $name, $vis) = @_;
+    my $self = bless {
+      rx => $rx,
+      flags => $rx->{flags}[-1],
+      family => 'recurse',
+      type => 'named_recurse',
+      name => $name,
+      vis => $vis,
+    }, $class;
+    return $self;
+  }
+
+  sub name {
+    my $self = shift;
+    $self->{name};
+  }
+
+  sub visual {
+    my $self = shift;
+    $self->{vis};
+  }
+
+  sub qr {
+    my $self = shift;
+    "(?&$self->{name})";
+  }
+}
+
+
 1;
 
 __END__
