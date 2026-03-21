@@ -58,7 +58,12 @@ sub regex {
     for my $ch (split //, $flags) {
       my $method = "FLAG_$ch";
       if ($self->can($method)) {
-        $init_flags |= $self->$method;
+        my $v = $self->$method;
+        # /xx: if x is already on, set the xx bit (Perl 5.26+)
+        if ($ch eq 'x' && ($init_flags & $v)) {
+          $init_flags |= 0x200;
+        }
+        $init_flags |= $v;
       }
     }
   }
