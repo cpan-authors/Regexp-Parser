@@ -63,7 +63,6 @@ GitHub Actions: `.github/workflows/testsuite.yml`
 Most Perl 5.10+ constructs are now supported. Remaining gaps:
 - `(?(DEFINE)...)` definition-only groups
 - `(?{ code })` / `(??{ code })` execute correctly at parse time but code blocks are opaque
-- Some exotic `(*VERB:arg)` forms with arguments
 
 ## Gotchas
 
