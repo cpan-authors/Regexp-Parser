@@ -1,5 +1,4 @@
 Changes
-CLAUDE.md
 cpanfile
 lib/Perl6/Rule/Parser.pm
 lib/Regexp/Parser.pm
