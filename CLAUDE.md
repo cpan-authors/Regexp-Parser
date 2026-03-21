@@ -37,7 +37,8 @@ $self->add_handler('sequence' => sub {
 ## Conventions
 
 - **Indentation**: 2 spaces in most code, tabs in Makefile.PL
-- **Perl version**: `use 5.006` declared, CI tests 5.8+
+- **Perl version**: `use 5.006` syntax, `MIN_PERL_VERSION` 5.16 in Makefile.PL, CI tests 5.16+
+- **Caution**: Don't bump `use 5.0XX` above 5.006 — higher versions enable `feature 'unicode_strings'` which makes `qr//` in Parser.pm emit `/u` flags, breaking stringification expectations
 - **Strict/warnings**: All modules use both
 - **Naming**: packages lowercase (`::exact`, `::quant`), methods `snake_case`, constants `UPPER_CASE`, error codes `RPe_*`
 - **Lvalue subs**: State accessors (`Rx`, `RxPOS`, `Rf`, `SIZE_ONLY`, `LATEST`) are lvalue subs exported to subclasses
@@ -51,9 +52,10 @@ $self->add_handler('sequence' => sub {
 
 ## CI
 
-GitHub Actions: `.github/workflows/{linux,macos,windows}.yml`
-- Linux: matrix across Perl 5.8 to latest
+GitHub Actions: `.github/workflows/testsuite.yml`
+- Linux: matrix across Perl 5.16 to latest (including devel)
 - macOS/Windows: latest Perl only
+- Includes `disttest` job to verify MANIFEST/distribution
 - Env: `PERL_USE_UNSAFE_INC=0`, `AUTOMATED_TESTING=1`
 
 ## Known Gaps
