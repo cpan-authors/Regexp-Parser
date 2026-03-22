@@ -113,13 +113,23 @@ sub init {
     my ($S, $cc) = @_;
     $S->warn($S->RPe_BADESC, "B", " in character class") if $cc;
     return $S->force_object(anyof_char => 'B') if $cc;
+    # extended boundary types: \B{gcb}, \B{g}, \B{wb}, \B{sb}, \B{lb}
+    if (${&Rx} =~ m{ \G \{ (gcb|g|wb|sb|lb) \} }xgc) {
+      my $btype = $1;
+      return $S->object(bound => nbound => "\\B{$btype}", $btype);
+    }
     return $S->object(bound => nbound => '\B');
   });
 
-  # bound (not a word boundary)
+  # bound (word boundary)
   $self->add_handler('\b' => sub {
     my ($S, $cc) = @_;
     return $S->force_object(anyof_char => "\b", '\b') if $cc;
+    # extended boundary types: \b{gcb}, \b{g}, \b{wb}, \b{sb}, \b{lb}
+    if (${&Rx} =~ m{ \G \{ (gcb|g|wb|sb|lb) \} }xgc) {
+      my $btype = $1;
+      return $S->object(bound => bound => "\\b{$btype}", $btype);
+    }
     return $S->object(bound => bound => '\b');
   });
 
