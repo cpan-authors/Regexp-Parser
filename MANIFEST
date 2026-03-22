@@ -24,4 +24,5 @@ t/10roundtrip.t
 t/11errors.t
 t/12perl542.t
 t/13recursive.t
+t/14quotemeta.t
 t/99misc.t
