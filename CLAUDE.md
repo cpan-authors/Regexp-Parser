@@ -46,7 +46,7 @@ $self->add_handler('sequence' => sub {
 
 ## Testing
 
-- 15 test files in `t/`, 615+ tests total
+- 17 test files in `t/`, 676+ tests total
 - All tests use `Test::More`
 - Tests cover: basic parsing, subclassing, tree walking, conditionals, captures, character classes, flags, Unicode/POSIX, Perl 5.10+ constructs, recursive patterns, round-trip validation, error rejection
 
