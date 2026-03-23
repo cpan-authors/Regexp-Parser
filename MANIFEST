@@ -26,4 +26,5 @@ t/12perl542.t
 t/13recursive.t
 t/14quotemeta.t
 t/15boundary.t
+t/16define.t
 t/99misc.t
