@@ -1,5 +1,3 @@
-use NEXT;
-
 {
   package Regexp::Parser::__object__;  
 
@@ -2074,12 +2072,12 @@ when using a walker (see L<Regexp::Parser/"Walking the Tree">).
 
 Objects may override these methods (as objects often do).
 
-=head3 Using F<NEXT::> instead of F<SUPER::>
+=head3 Using C<next::method> instead of C<SUPER::>
 
 You can't use C<< $obj->SUPER::method() >> inside the F<__object__> class,
 because F<__object__> doesn't inherit from anywhere.  You want to go along
-the I<object>'s inheritance tree.  Use Damian Conway's F<NEXT> module
-instead.  This module is standard with Perl 5.8.
+the I<object>'s inheritance tree.  Use C<next::method> from the L<mro>
+module instead (core since Perl 5.10).
 
 =head2 Object Attributes
 
