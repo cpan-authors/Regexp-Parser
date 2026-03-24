@@ -477,6 +477,11 @@ CAVEATS
         "qr//", or mix single- and double-quoted strings in building your
         regex.
 
+AI POLICY
+    This project uses AI tools to assist with maintenance and development.
+    See AI_POLICY.md for full details on how AI is used, its limitations,
+    and our commitment to human oversight of every change.
+
 AUTHOR
     Jeff "japhy" Pinyan, japhy@perlmonk.org
 
