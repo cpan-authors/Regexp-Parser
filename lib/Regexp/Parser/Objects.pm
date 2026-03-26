@@ -2065,8 +2065,9 @@ character class's ender is an C<anyof_close> node.
 
 The general family of this object.  These are any of: alnum, anchor,
 anyof, anyof_char, anyof_class, anyof_range, assertion, branch, close,
-clump, define, digit, exact, flags, group, groupp, grouppn, minmod, prop, open, quant, ref,
-reg_any.
+clump, digit, exact, flags, group, groupp, grouppn, hspace, lnbreak,
+minmod, open, possessive, prop, quant, recurse, ref, reg_any, verb,
+vspace.
 
 =item my $f = $obj->flags()
 
@@ -2241,9 +2242,6 @@ the class, and it's a good idea to do so I<inside> the class as well.
 All objects are prefixed with F<Regexp::Parser::>, but that is omitted
 here for brevity.  The headings are object I<classes>.  The field
 "family" represents the general category into which that object falls.
-
-This is very sparse.  Future versions will have more complete
-documentation.  For now, read the source (!).
 
 =head2 bol
 
@@ -2445,6 +2443,32 @@ Family: ref
 Types: ref1, ref2 .. refN (C<\1>, C<\2>, etc.); reff1, reff2 .. reffN
 (C<\1>, C<\2>, etc. with C</i> on)
 
+=head2 gref
+
+Family: ref
+
+Types: gref (C<\g{1}>, C<\g{-1}>, C<\g{+2}>, etc.)
+
+A generalized backreference using the C<\g{N}> syntax (Perl 5.10+).
+Supports absolute, relative negative, and relative positive group numbers.
+
+The C<name()> accessor returns the group specifier (which may include a
+sign for relative references).  The C<visual()> output preserves the
+original syntax used.
+
+=head2 named_ref
+
+Family: ref
+
+Types: named_ref (C<< \k<name> >>), named_reff (C<< \k<name> >> with C</i> on)
+
+A named backreference (Perl 5.10+).  Matches the text captured by the
+named group.  Supports C<< \k<name> >>, C<\k'name'>, C<\k{name}>,
+C<< (?P=name) >>, and C<\g{name}> syntax variants.
+
+The C<name()> accessor returns the capture group name.  The C<visual()>
+output preserves the original delimiter syntax used.
+
 =head2 ifmatch
 
 Family: assertion
@@ -2456,6 +2480,11 @@ Data: array reference of any number of objects
 Dir: -1 if look-behind, 1 if look-ahead
 
 Ender: tail
+
+Also created by the alphabetic assertion syntax (Perl 5.28+):
+C<(*pla:...)>, C<(*positive_lookahead:...)>, C<(*plb:...)>,
+C<(*positive_lookbehind:...)>.  These normalize to C<(?=...)> / C<(?<=...)>
+in visual output.
 
 =head2 unlessm
 
@@ -2469,6 +2498,11 @@ Dir: -1 if look-behind, 1 if look-ahead
 
 Ender: tail
 
+Also created by the alphabetic assertion syntax (Perl 5.28+):
+C<(*nla:...)>, C<(*negative_lookahead:...)>, C<(*nlb:...)>,
+C<(*negative_lookbehind:...)>.  These normalize to C<(?!...)> / C<(?<!...)>
+in visual output.
+
 =head2 suspend
 
 Family: assertion
@@ -2478,6 +2512,9 @@ Types: suspend (C<< (?> >>)
 Data: array reference of any number of objects
 
 Ender: tail
+
+Also created by C<(*atomic:...)> (Perl 5.28+), which normalizes to
+C<< (?> >>) in visual output.
 
 =head2 ifthen
 
@@ -2520,7 +2557,10 @@ Family: assertion
 
 Types: eval (C<(?{>)
 
-Data: string with contents of assertion
+Data: string with contents of code block
+
+The C<code()> accessor returns the code block content string.  Code blocks
+are parsed opaquely -- the content is captured as-is but not interpreted.
 
 =head2 logical
 
@@ -2528,7 +2568,10 @@ Family: assertion
 
 Types: logical (C<(??{>)
 
-Data: string with contents of assertion
+Data: string with contents of code block
+
+The C<code()> accessor returns the code block content string.  Like
+C<eval>, code blocks are captured opaquely.
 
 =head2 flags
 
@@ -2543,6 +2586,154 @@ Family: minmod
 Types: minmod (C<?> after I<quant>)
 
 Data: an object in the I<quant> family
+
+=head2 possessive
+
+Family: possessive
+
+Types: possessive (C<+> after I<quant>)
+
+Data: an object in the I<quant> family
+
+A possessive quantifier modifier (Perl 5.10+).  Written as C<*+>, C<++>,
+C<?+>, or C<{n,m}+>.  Like C<minmod>, the possessive node wraps the
+preceding quantifier.  Possessive quantifiers prevent backtracking into
+the quantified expression.
+
+=head2 keep
+
+Family: anchor
+
+Types: keep (C<\K>)
+
+The keep assertion (Perl 5.10+).  Resets the start of C<$&> (the matched
+string) at this point, effectively discarding everything matched so far
+from the final match result.  Zero-width.
+
+=head2 hspace
+
+Family: hspace
+
+Types: hspace (C<\h>), nhspace (C<\H>)
+
+Neg: 1 if negated
+
+Horizontal whitespace character class shorthand (Perl 5.10+).  Matches
+characters like space, tab, and other horizontal whitespace.
+
+=head2 vspace
+
+Family: vspace
+
+Types: vspace (C<\v>), nvspace (C<\V>)
+
+Neg: 1 if negated
+
+Vertical whitespace character class shorthand (Perl 5.10+).  Matches
+characters like newline, carriage return, form feed, and vertical tab.
+
+=head2 lnbreak
+
+Family: lnbreak
+
+Types: lnbreak (C<\R>)
+
+Generic linebreak (Perl 5.10+).  Matches C<\r\n> (CRLF) or any Unicode
+vertical whitespace character.
+
+=head2 named_open
+
+Family: open
+
+Types: open1, open2 ... openN (C<< (?<name> >>)
+
+Data: array reference of any number of objects
+
+Ender: I<close>
+
+A named capture group (Perl 5.10+).  Also parses the Python-style
+named capture syntax, which normalizes to C<< (?<name>...) >> in visual
+output.
+
+The C<name()> accessor returns the capture group name.  The C<nparen()>
+accessor returns the numeric capture index.
+
+=head2 recurse
+
+Family: recurse
+
+Types: recurse (C<(?R)>, C<(?0)>, C<(?1)>, C<(?+1)>, C<(?-1)>)
+
+A recursive subpattern (Perl 5.10+).  Recurses into the entire pattern
+(C<(?R)> or C<(?0)>) or into a specific capture group by absolute or
+relative number.
+
+The C<num()> accessor returns the resolved group number (0 for whole
+pattern).  The C<visual()> output preserves the original syntax.
+
+=head2 named_recurse
+
+Family: recurse
+
+Types: named_recurse (C<(?&name)>)
+
+A named recursive subpattern (Perl 5.10+).  Also parses the Python syntax
+C<< (?P>name) >> which normalizes to C<(?&name)> in qr() output.
+
+The C<name()> accessor returns the target group name.
+
+=head2 verb
+
+Family: verb
+
+Types: FAIL, F, ACCEPT, SKIP, PRUNE, COMMIT, THEN, MARK (backtracking
+control verbs)
+
+A backtracking control verb (Perl 5.10+).  Written as C<(*VERB)> or
+C<(*VERB:arg)>.
+
+The C<name()> accessor returns the verb name (e.g. C<"FAIL">, C<"SKIP">).
+The C<arg()> accessor returns the argument string, or undef if none.
+
+=head2 branch_reset
+
+Family: group
+
+Types: branch_reset (C<(?|>)
+
+Data: array reference of any number of objects
+
+Ender: I<tail>
+
+A branch reset group (Perl 5.10+).  Structurally identical to a
+non-capturing group, but capture groups in each alternative share the
+same numbering.
+
+=head2 script_run
+
+Family: assertion
+
+Types: script_run (C<(*script_run:>)
+
+Data: array reference of any number of objects
+
+Ender: I<tail>
+
+A script run assertion (Perl 5.28+).  Ensures the matched text belongs to
+a single Unicode script.  Also accepts the short form C<(*sr:...)>.
+
+=head2 asr
+
+Family: assertion
+
+Types: asr (C<(*asr:>)
+
+Data: array reference of any number of objects
+
+Ender: I<tail>
+
+An atomic script run (Perl 5.28+).  Combines atomic grouping with script
+run checking.  Also accepts C<(*atomic_script_run:...)>.
 
 =head1 SEE ALSO
 
