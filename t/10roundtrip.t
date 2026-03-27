@@ -147,6 +147,17 @@ my @patterns = (
     '(?:abc){2,5}',
     '(a|b)*?',
     '(?>abc)+',
+
+    # Backreferences — relative and named
+    '(a)\\g{1}',
+    '(a)\\g1',
+    '(a)(b)\\g{-1}',
+    '(a)\\g{+1}(b)',
+    '(a)(b)\\g{+1}(c)',
+    '(?<foo>bar)\\k<foo>',
+    "(?<foo>bar)\\k'foo'",
+    '(?<foo>bar)\\k{foo}',
+    '(?<x>a)(?P=x)',
 );
 
 plan tests => scalar(@patterns) * 2;

@@ -187,13 +187,20 @@ sub init {
         my $name = $1;
         return $S->object(gref => $name, "\\g{$name}");
       }
-      # \g{N} or \g{-N} — numeric (possibly relative)
-      if (${&Rx} =~ m{ \G (-?\d+) \} }xgc) {
+      # \g{N}, \g{-N}, or \g{+N} — numeric (possibly relative)
+      if (${&Rx} =~ m{ \G ([+-]?\d+) \} }xgc) {
         my $num = $1;
         my $abs;
-        if ($num < 0) {
+        if ($num =~ /^-/) {
+          # negative relative: count backwards from current group
           $abs = (&SIZE_ONLY ? $S->{maxpar} : $S->{nparen}) + $num + 1;
           $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and $abs < 1;
+        }
+        elsif ($num =~ /^\+/) {
+          # positive relative: count forwards from current group (Perl 5.10+)
+          my $n = 0 + substr($num, 1);
+          $abs = (&SIZE_ONLY ? $S->{maxpar} : $S->{nparen}) + $n;
+          $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and $abs > $S->{maxpar};
         }
         else {
           $abs = $num;
@@ -1068,6 +1075,10 @@ sub init {
     }
     elsif (${&Rx} =~ m{ \G ' ([^']+) ' }xgc) {
       return $S->object(named_ref => $1, "\\k'$1'");
+    }
+    elsif (${&Rx} =~ m{ \G \{ ([^\}]+) \} }xgc) {
+      # \k{name} — brace-delimited named backref (Perl 5.32+)
+      return $S->object(named_ref => $1, "\\k{$1}");
     }
 
     $S->error($S->RPe_BADESC, "k", "");
