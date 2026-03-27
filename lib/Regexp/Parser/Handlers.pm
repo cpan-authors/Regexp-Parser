@@ -1187,6 +1187,94 @@ sub init {
   });
 
   ##
+  ## Perl 5.18+ extended character class: (?[...])
+  ## Set operations on character classes (union, intersection, subtraction, etc.)
+  ## Content is stored opaquely (like code blocks in (?{...}))
+  ##
+  $self->add_handler('(?[' => sub {
+    my ($S) = @_;
+    # Match balanced content: handles nested [...], (...), \escapes, and #comments
+    my $depth_sq = 1;  # we already consumed (?[
+    my $depth_rn = 0;
+    my $content = '';
+    my $rx = ${&Rx};
+
+    while (&RxPOS < length($rx)) {
+      my $ch = substr($rx, &RxPOS, 1);
+      &RxPOS++;
+
+      if ($ch eq '\\') {
+        # consume escaped character
+        if (&RxPOS < length($rx)) {
+          $content .= $ch . substr($rx, &RxPOS, 1);
+          &RxPOS++;
+        }
+        else {
+          $content .= $ch;
+        }
+        next;
+      }
+
+      if ($ch eq '#') {
+        # extended char classes are always /x-like: # starts a comment to EOL
+        $content .= '#';
+        while (&RxPOS < length($rx)) {
+          my $cc = substr($rx, &RxPOS, 1);
+          &RxPOS++;
+          $content .= $cc;
+          last if $cc eq "\n";
+        }
+        next;
+      }
+
+      if ($ch eq '[') {
+        $depth_sq++;
+        $content .= $ch;
+        next;
+      }
+
+      if ($ch eq ']') {
+        $depth_sq--;
+        if ($depth_sq == 0 && $depth_rn == 0) {
+          # Check for the closing ) after ]
+          if (&RxPOS < length($rx) && substr($rx, &RxPOS, 1) eq ')') {
+            &RxPOS++;
+            return $S->object(charclass_expr => $content);
+          }
+          # No closing ) — put the ] back and keep going
+          $depth_sq++;
+          $content .= $ch;
+          next;
+        }
+        $content .= $ch;
+        next;
+      }
+
+      if ($ch eq '(') {
+        $depth_rn++;
+        $content .= $ch;
+        next;
+      }
+
+      if ($ch eq ')') {
+        if ($depth_rn > 0) {
+          $depth_rn--;
+          $content .= $ch;
+          next;
+        }
+        # Unexpected ) outside parens — error
+        $content .= $ch;
+        next;
+      }
+
+      $content .= $ch;
+    }
+
+    # Unterminated (?[...])
+    $S->error($S->RPe_NOTERM);
+  });
+
+  ##
   ## Perl 5.10+ branch reset group: (?|...)
   ##
   $self->add_handler('(?|' => sub {

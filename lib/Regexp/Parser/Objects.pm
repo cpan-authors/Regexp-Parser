@@ -2019,6 +2019,45 @@
     "(*asr:";
   }
 }
+
+
+{
+  # (?[...]) Extended character class with set operations (Perl 5.18+)
+  package Regexp::Parser::charclass_expr;
+  our @ISA = qw( Regexp::Parser::__object__ );
+
+  sub new {
+    my ($class, $rx, $content) = @_;
+    my $self = bless {
+      rx => $rx,
+      flags => $rx->{flags}[-1],
+      family => 'charclass_expr',
+      type => 'charclass_expr',
+      data => $content,
+    }, $class;
+    return $self;
+  }
+
+  sub visual {
+    my $self = shift;
+    "(?[$self->{data}])";
+  }
+
+  sub qr {
+    my $self = shift;
+    $self->visual;
+  }
+
+  sub insert {
+    my ($self, $tree) = @_;
+    push @$tree, $self;
+  }
+
+  sub walk {
+    my $self = shift;
+    return;
+  }
+}
 1;
 
 __END__
@@ -2064,10 +2103,10 @@ character class's ender is an C<anyof_close> node.
 =item my $c = $obj->family()
 
 The general family of this object.  These are any of: alnum, anchor,
-anyof, anyof_char, anyof_class, anyof_range, assertion, branch, close,
-clump, digit, exact, flags, group, groupp, grouppn, hspace, lnbreak,
-minmod, open, possessive, prop, quant, recurse, ref, reg_any, verb,
-vspace.
+anyof, anyof_char, anyof_class, anyof_range, assertion, branch,
+charclass_expr, close, clump, digit, exact, flags, group, groupp,
+grouppn, hspace, lnbreak, minmod, open, possessive, prop, quant,
+recurse, ref, reg_any, verb, vspace.
 
 =item my $f = $obj->flags()
 
@@ -2734,6 +2773,20 @@ Ender: I<tail>
 
 An atomic script run (Perl 5.28+).  Combines atomic grouping with script
 run checking.  Also accepts C<(*atomic_script_run:...)>.
+
+=head2 charclass_expr
+
+Family: charclass_expr
+
+Types: charclass_expr (C<< (?[...]) >>)
+
+Data: string content of the extended character class expression
+
+An extended character class (Perl 5.18+) that supports set operations:
+union (C<+>), intersection (C<&>), subtraction (C<->), symmetric
+difference (C<^>), and complement (C<!>).  The expression content is
+stored as an opaque string, similar to how code blocks in C<(?{...})>
+are handled.
 
 =head1 SEE ALSO
 
