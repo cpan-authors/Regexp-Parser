@@ -62,6 +62,7 @@ GitHub Actions: `.github/workflows/testsuite.yml`
 
 Most Perl 5.10+ constructs are now supported. Remaining gaps:
 - `(?{ code })` / `(??{ code })` execute correctly at parse time but code blocks are opaque
+- `(?[...])` extended character classes parse successfully but expression content is opaque (stored as string, like code blocks)
 
 ## Gotchas
 
