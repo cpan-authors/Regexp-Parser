@@ -221,15 +221,31 @@ sub init {
     $S->error($S->RPe_BRACES, 'g');
   });
 
-  # named (named character)
+  # \N (not newline) or \N{NAME} / \N{U+HHHH} (named character)
   $self->add_handler('\N' => sub {
     my ($S, $cc) = @_;
-    $S->error($S->RPe_BRACES, 'N') if ${&Rx} !~ m{ \G \{ }xgc;
-    $S->error($S->RPe_RBRACE, 'N') if ${&Rx} !~ m{ \G ([^\}]*) \} }xgc;
 
-    my $name = $1;
-    return $S->force_object(anyof_char => $S->nchar($name), "\\N{$name}") if $cc;
-    return $S->object(exact => $S->nchar($name), "\\N{$name}");
+    # Check for \N{...}
+    if (${&Rx} =~ m{ \G \{ }xgc) {
+      # Disambiguate \N{3,5} (quantifier) from \N{NAME} (named char):
+      # if contents look like a quantifier pattern, back up and treat as bare \N
+      if (!$cc && ${&Rx} =~ m{ \G (?= \d+,?\d*\} ) }xgc) {
+        --&RxPOS;  # un-consume the {
+        return $S->object(nonnewline =>);
+      }
+
+      $S->error($S->RPe_RBRACE, 'N') if ${&Rx} !~ m{ \G ([^\}]*) \} }xgc;
+
+      my $name = $1;
+      return $S->force_object(anyof_char => $S->nchar($name), "\\N{$name}") if $cc;
+      return $S->object(exact => $S->nchar($name), "\\N{$name}");
+    }
+
+    # bare \N = "not newline" (Perl 5.12+), not valid in character class
+    if ($cc) {
+      $S->error($S->RPe_BRACES, 'N');
+    }
+    return $S->object(nonnewline =>);
   });
 
   # \o{NNN} octal escape (Perl 5.14+)
