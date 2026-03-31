@@ -158,6 +158,14 @@ my @patterns = (
     "(?<foo>bar)\\k'foo'",
     '(?<foo>bar)\\k{foo}',
     '(?<x>a)(?P=x)',
+
+    # \N (not newline) and \N{NAME}
+    '\\N',
+    '\\N+',
+    '\\N{3,5}',
+    '\\N{SPACE}',
+    '\\N{U+0041}',
+    '\\N{LATIN SMALL LETTER A}',
 );
 
 plan tests => scalar(@patterns) * 2;

@@ -137,7 +137,17 @@ sub named_captures {
 
 sub nchar {
   my $self = shift;
-  return map chr(/^\^(\S)/ ? (64 ^ ord $1) : charnames::vianame($_)), @_;
+  return map {
+    if (/^\^(\S)/) {
+      chr(64 ^ ord $1);
+    }
+    elsif (/^U\+([0-9a-fA-F]+)$/) {
+      chr(hex($1));
+    }
+    else {
+      chr(charnames::vianame($_));
+    }
+  } @_;
 }
 
 

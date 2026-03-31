@@ -145,7 +145,10 @@ fails_regex('\\',        ($r->RPe_ESLASH)[0],   'lone backslash');
 
 # Missing braces on \g, \N
 fails_regex('\\g',       ($r->RPe_BRACES)[0],   '\\g without braces');
-fails_regex('\\N',       ($r->RPe_BRACES)[0],   '\\N without braces');
+# bare \N is valid since Perl 5.12 (means "not newline")
+parses_ok('\\N',                                  '\\N bare (not newline)');
+# but bare \N inside character class is still an error
+fails_regex('[\\N]',    ($r->RPe_BRACES)[0],      '\\N without braces in char class');
 
 # Missing right brace
 fails_regex('\\x{abc',   ($r->RPe_RBRACE)[0],   '\\x{... missing right brace');
