@@ -1380,6 +1380,86 @@
 
 
 {
+  # (?(R)t|f) — recursion condition (am I in any recursion?)
+  package Regexp::Parser::groupr;
+  our @ISA = qw( Regexp::Parser::__object__ );
+
+  sub new {
+    my ($class, $rx) = @_;
+    my $self = bless {
+      rx => $rx,
+      flags => $rx->{flags}[-1],
+      family => 'groupp',
+      type => 'groupr',
+    }, $class;
+    return $self;
+  }
+
+  sub visual {
+    "(R)";
+  }
+}
+
+
+{
+  # (?(R1)t|f) — numbered recursion condition
+  package Regexp::Parser::grouprn;
+  our @ISA = qw( Regexp::Parser::__object__ );
+
+  sub new {
+    my ($class, $rx, $nparen) = @_;
+    my $self = bless {
+      rx => $rx,
+      flags => $rx->{flags}[-1],
+      family => 'groupp',
+      type => 'grouprn',
+      nparen => $nparen,
+    }, $class;
+    return $self;
+  }
+
+  sub nparen {
+    my $self = shift;
+    $self->{nparen};
+  }
+
+  sub visual {
+    my $self = shift;
+    "(R$self->{nparen})";
+  }
+}
+
+
+{
+  # (?(R&name)t|f) — named recursion condition
+  package Regexp::Parser::grouprname;
+  our @ISA = qw( Regexp::Parser::__object__ );
+
+  sub new {
+    my ($class, $rx, $name) = @_;
+    my $self = bless {
+      rx => $rx,
+      flags => $rx->{flags}[-1],
+      family => 'groupp',
+      type => 'grouprname',
+      name => $name,
+    }, $class;
+    return $self;
+  }
+
+  sub name {
+    my $self = shift;
+    $self->{name};
+  }
+
+  sub visual {
+    my $self = shift;
+    "(R&$self->{name})";
+  }
+}
+
+
+{
   # (?{ ... })
   package Regexp::Parser::eval;
 
@@ -2105,7 +2185,7 @@ character class's ender is an C<anyof_close> node.
 The general family of this object.  These are any of: alnum, anchor,
 anyof, anyof_char, anyof_class, anyof_range, assertion, branch,
 charclass_expr, close, clump, digit, exact, flags, group, groupp,
-grouppn, hspace, lnbreak, minmod, open, possessive, prop, quant,
+grouppn, groupr, grouprn, grouprname, hspace, lnbreak, minmod, open, possessive, prop, quant,
 recurse, ref, reg_any, verb, vspace.
 
 =item my $f = $obj->flags()
@@ -2589,6 +2669,37 @@ Types: grouppn (C<< <name> >> or C<'name'> when in C<(?(>)
 
 Named capture condition, as in C<< (?(<name>)...) >> or C<(?('name')...)>.
 Tests whether the named capture group participated in the match.
+
+=head2 groupr
+
+Family: groupp
+
+Types: groupr (C<R> when in C<(?(>)
+
+Recursion condition.  Tests whether the current position is inside any
+recursive call, as in C<(?(R)yes|no)>.
+
+=head2 grouprn
+
+Family: groupp
+
+Types: grouprn (C<R1>, C<R2>, etc. when in C<(?(>)
+
+Numbered recursion condition.  Tests whether the current position is
+inside a recursion into group I<N>, as in C<(?(R1)yes|no)>.
+
+The C<nparen()> accessor returns the group number.
+
+=head2 grouprname
+
+Family: groupp
+
+Types: grouprname (C<< R&name >> when in C<(?(>)
+
+Named recursion condition.  Tests whether the current position is
+inside a recursion into the named group, as in C<< (?(R&name)yes|no) >>.
+
+The C<name()> accessor returns the group name.
 
 =head2 eval
 

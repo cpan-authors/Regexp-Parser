@@ -158,6 +158,12 @@ my @patterns = (
     "(?<foo>bar)\\k'foo'",
     '(?<foo>bar)\\k{foo}',
     '(?<x>a)(?P=x)',
+
+    # Recursion conditionals
+    '(?(R)a|b)',
+    '(a)(?(R1)x|y)',
+    '(?<foo>a)(?(R&foo)x|b)',
+    '(a(?(R)a|(?1))a)',
 );
 
 plan tests => scalar(@patterns) * 2;
