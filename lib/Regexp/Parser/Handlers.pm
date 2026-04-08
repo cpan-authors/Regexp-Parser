@@ -185,6 +185,7 @@ sub init {
       # \g{name} — named backref
       if (${&Rx} =~ m{ \G ([a-zA-Z_]\w*) \} }xgc) {
         my $name = $1;
+        $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and !exists $S->{named_captures}{$name};
         return $S->object(gref => $name, "\\g{$name}");
       }
       # \g{N}, \g{-N}, or \g{+N} — numeric (possibly relative)
@@ -1071,14 +1072,20 @@ sub init {
     }
 
     if (${&Rx} =~ m{ \G < ([^>]+) > }xgc) {
-      return $S->object(named_ref => $1, "\\k<$1>");
+      my $name = $1;
+      $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and !exists $S->{named_captures}{$name};
+      return $S->object(named_ref => $name, "\\k<$name>");
     }
     elsif (${&Rx} =~ m{ \G ' ([^']+) ' }xgc) {
-      return $S->object(named_ref => $1, "\\k'$1'");
+      my $name = $1;
+      $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and !exists $S->{named_captures}{$name};
+      return $S->object(named_ref => $name, "\\k'$name'");
     }
     elsif (${&Rx} =~ m{ \G \{ ([^\}]+) \} }xgc) {
       # \k{name} — brace-delimited named backref (Perl 5.32+)
-      return $S->object(named_ref => $1, "\\k{$1}");
+      my $name = $1;
+      $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and !exists $S->{named_captures}{$name};
+      return $S->object(named_ref => $name, "\\k{$name}");
     }
 
     $S->error($S->RPe_BADESC, "k", "");
@@ -1100,9 +1107,14 @@ sub init {
     if (${&Rx} =~ m{ \G ([A-Za-z_]\w*) > }xgc) {
       my $name = $1;
       push @{ $S->{next} }, qw< c) atom >;
-      &SIZE_ONLY ? ++$S->{maxpar} : ++$S->{nparen};
+      if (&SIZE_ONLY) {
+        ++$S->{maxpar};
+        $S->{named_captures}{$name} = $S->{maxpar};
+      } else {
+        ++$S->{nparen};
+        $S->{named_captures}{$name} = $S->{nparen};
+      }
       push @{ $S->{flags} }, &Rf;
-      $S->{named_captures}{$name} = $S->{nparen} unless &SIZE_ONLY;
       return $S->object(named_open => $S->{nparen}, $name);
     }
 
@@ -1116,9 +1128,14 @@ sub init {
     if (${&Rx} =~ m{ \G ([A-Za-z_]\w*) ' }xgc) {
       my $name = $1;
       push @{ $S->{next} }, qw< c) atom >;
-      &SIZE_ONLY ? ++$S->{maxpar} : ++$S->{nparen};
+      if (&SIZE_ONLY) {
+        ++$S->{maxpar};
+        $S->{named_captures}{$name} = $S->{maxpar};
+      } else {
+        ++$S->{nparen};
+        $S->{named_captures}{$name} = $S->{nparen};
+      }
       push @{ $S->{flags} }, &Rf;
-      $S->{named_captures}{$name} = $S->{nparen} unless &SIZE_ONLY;
       return $S->object(named_open => $S->{nparen}, $name);
     }
 
@@ -1141,6 +1158,7 @@ sub init {
 
     if (${&Rx} =~ m{ \G ([A-Za-z_]\w*) \) }xgc) {
       my $name = $1;
+      $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and !exists $S->{named_captures}{$name};
       return $S->object(named_recurse => $name, "(?&$name)");
     }
 
@@ -1157,21 +1175,28 @@ sub init {
     if (${&Rx} =~ m{ \G < ([A-Za-z_]\w*) > }xgc) {
       my $name = $1;
       push @{ $S->{next} }, qw< c) atom >;
-      &SIZE_ONLY ? ++$S->{maxpar} : ++$S->{nparen};
+      if (&SIZE_ONLY) {
+        ++$S->{maxpar};
+        $S->{named_captures}{$name} = $S->{maxpar};
+      } else {
+        ++$S->{nparen};
+        $S->{named_captures}{$name} = $S->{nparen};
+      }
       push @{ $S->{flags} }, &Rf;
-      $S->{named_captures}{$name} = $S->{nparen} unless &SIZE_ONLY;
       return $S->object(named_open => $S->{nparen}, $name);
     }
 
     # (?P=name) named backreference
     if (${&Rx} =~ m{ \G = ([A-Za-z_]\w*) \) }xgc) {
       my $name = $1;
+      $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and !exists $S->{named_captures}{$name};
       return $S->object(named_ref => $name, "(?P=$name)");
     }
 
     # (?P>name) named recursion
     if (${&Rx} =~ m{ \G > ([A-Za-z_]\w*) \) }xgc) {
       my $name = $1;
+      $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and !exists $S->{named_captures}{$name};
       return $S->object(named_recurse => $name, "(?P>$name)");
     }
 
