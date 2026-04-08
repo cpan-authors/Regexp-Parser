@@ -342,4 +342,50 @@ parses_ok('(?{1+1})',    'valid code block');
 parses_ok('(??{1+1})',   'valid logical code block');
 parses_ok('a(?:b|c)d',   'valid alternation in group');
 
+# --- RPe_BGROUP: named backreferences to nonexistent groups ---
+# All named backref forms must reject when no matching named group exists.
+# Perl: "Reference to nonexistent named group"
+
+{
+    my $r = Regexp::Parser->new;
+    my $RPe_BGROUP = ($r->RPe_BGROUP)[0];
+
+    # \k forms
+    fails_visual('\k<foo>',             $RPe_BGROUP, '\k<foo> nonexistent group');
+    fails_visual('(a)\k<foo>',          $RPe_BGROUP, '\k<foo> no named capture');
+    fails_visual('(?<bar>a)\k<foo>',    $RPe_BGROUP, '\k<foo> wrong name');
+    fails_visual("\\k'foo'",            $RPe_BGROUP, "\\k'foo' nonexistent group");
+    fails_visual('\k{foo}',             $RPe_BGROUP, '\k{foo} nonexistent group');
+
+    # \g{name} form
+    fails_visual('\g{foo}',             $RPe_BGROUP, '\g{foo} nonexistent group');
+    fails_visual('(?<bar>a)\g{foo}',    $RPe_BGROUP, '\g{foo} wrong name');
+
+    # (?P=name) Python-style backref
+    fails_visual('(?P=foo)',            $RPe_BGROUP, '(?P=foo) nonexistent group');
+    fails_visual('(?<bar>a)(?P=foo)',   $RPe_BGROUP, '(?P=foo) wrong name');
+
+    # (?&name) named recursion
+    fails_visual('(?&foo)',             $RPe_BGROUP, '(?&foo) nonexistent group');
+    fails_visual('(?<bar>a)(?&foo)',    $RPe_BGROUP, '(?&foo) wrong name');
+
+    # (?P>name) Python-style named recursion
+    fails_visual('(?P>foo)',            $RPe_BGROUP, '(?P>foo) nonexistent group');
+    fails_visual('(?<bar>a)(?P>foo)',   $RPe_BGROUP, '(?P>foo) wrong name');
+
+    # Valid named refs must still parse correctly
+    parses_ok('(?<foo>a)\k<foo>',       'valid \k<foo> with matching group');
+    parses_ok("(?<foo>a)\\k'foo'",      "valid \\k'foo' with matching group");
+    parses_ok('(?<foo>a)\k{foo}',       'valid \k{foo} with matching group');
+    parses_ok('(?<foo>a)\g{foo}',       'valid \g{foo} with matching group');
+    parses_ok('(?<foo>a)(?P=foo)',       'valid (?P=foo) with matching group');
+    parses_ok('(?<foo>a)(?&foo)',        'valid (?&foo) with matching group');
+    parses_ok('(?<foo>a)(?P>foo)',       'valid (?P>foo) with matching group');
+    parses_ok('(?P<foo>a)\k<foo>',      'valid Python-style capture + \k');
+
+    # Forward references must work (group defined after ref)
+    parses_ok('(?&foo)(?<foo>a)',        'forward named recursion');
+    parses_ok('(?P>foo)(?<foo>a)',       'forward Python named recursion');
+}
+
 done_testing;
