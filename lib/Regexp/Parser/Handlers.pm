@@ -211,7 +211,15 @@ sub init {
       $S->error($S->RPe_RBRACE, 'g');
     }
 
-    # \gN form (no braces, positive only)
+    # \g-N form (no braces, negative relative)
+    if (${&Rx} =~ m{ \G ( - \d+ ) }xgc) {
+      my $num = $1;
+      my $abs = (&SIZE_ONLY ? $S->{maxpar} : $S->{nparen}) + $num + 1;
+      $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and $abs < 1;
+      return $S->object(ref => $abs, "\\g$num");
+    }
+
+    # \gN form (no braces, absolute)
     if (${&Rx} =~ m{ \G (\d+) }xgc) {
       my $num = $1;
       $S->error($S->RPe_BGROUP) if !&SIZE_ONLY and $num > $S->{maxpar};
@@ -703,6 +711,22 @@ sub init {
 
     if (${&Rx} =~ m{ \G (.) }xgcs) {
       my $n = "$c$1";
+
+      # (?'name'...) alternate named capture — handle here because
+      # the single-quote is a package separator in Perl, so
+      # add_handler/can() dispatch fails for method name "(?\'"
+      if ($1 eq "'") {
+        if (${&Rx} =~ m{ \G ([A-Za-z_]\w*) ' }xgc) {
+          my $name = $1;
+          push @{ $S->{next} }, qw< c) atom >;
+          &SIZE_ONLY ? ++$S->{maxpar} : ++$S->{nparen};
+          push @{ $S->{flags} }, &Rf;
+          $S->{named_captures}{$name} = $S->{nparen} unless &SIZE_ONLY;
+          return $S->object(named_open => $S->{nparen}, $name, "(?'");
+        }
+        $S->error($S->RPe_NOTREC, 1, substr(${&Rx}, &RxPOS - 1));
+      }
+
       return $S->$n if $S->can($n);
       &RxPOS--;
     }
@@ -1109,21 +1133,8 @@ sub init {
     $S->error($S->RPe_NOTREC, 2, substr(${&Rx}, &RxPOS - 2));
   });
 
-  # (?'name'...) alternate named capture syntax
-  $self->add_handler("(?\'" => sub {
-    my ($S) = @_;
-
-    if (${&Rx} =~ m{ \G ([A-Za-z_]\w*) ' }xgc) {
-      my $name = $1;
-      push @{ $S->{next} }, qw< c) atom >;
-      &SIZE_ONLY ? ++$S->{maxpar} : ++$S->{nparen};
-      push @{ $S->{flags} }, &Rf;
-      $S->{named_captures}{$name} = $S->{nparen} unless &SIZE_ONLY;
-      return $S->object(named_open => $S->{nparen}, $name);
-    }
-
-    $S->error($S->RPe_NOTREC, 1, substr(${&Rx}, &RxPOS - 1));
-  });
+  # (?'name'...) is handled inline in the (? handler above
+  # because ' is a Perl package separator, breaking add_handler/can() dispatch
 
   # (?R) -- whole-pattern recursion (Perl 5.10+)
   $self->add_handler('(?R' => sub {

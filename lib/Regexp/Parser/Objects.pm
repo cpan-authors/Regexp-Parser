@@ -1651,15 +1651,24 @@
   our @ISA = qw( Regexp::Parser::__object__ );
 
   sub new {
-    my ($class, $rx, $nparen, $name, @data) = @_;
+    my ($class, $rx, $nparen, $name, @rest) = @_;
+    # Optional prefix arg for alternate syntax: "(?'" vs default "(?<"
+    my $prefix = (@rest && !ref $rest[0] && $rest[0] =~ /^\(\?/) ? shift @rest : undef;
+    my $raw;
+    if ($prefix && $prefix eq "(?'") {
+      $raw = "(?'$name'";
+    }
+    else {
+      $raw = "(?<$name>";
+    }
     my $self = bless {
       rx => $rx,
       flags => $rx->{flags}[-1],
       family => 'open',
       nparen => $nparen,
       name => $name,
-      data => \@data,
-      raw => "(?<$name>",
+      data => \@rest,
+      raw => $raw,
       down => 1,
     }, $class;
     $self->{rx}{captures}[$nparen - 1] = $self;
