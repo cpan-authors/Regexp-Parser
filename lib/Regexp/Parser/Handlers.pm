@@ -495,6 +495,9 @@ sub init {
       my ($min, $range, $max) = ($1, $2, $3);
       $max = $min unless $range;
       push @{ $S->{next} }, qw< minmod >;
+      my $REG_INFTY = 2147483646;  # 0x7FFFFFFE, Perl's internal limit
+      $S->error($S->RPe_QUANTBIG, $REG_INFTY) if $min > $REG_INFTY;
+      $S->error($S->RPe_QUANTBIG, $REG_INFTY) if length($max) and $max > $REG_INFTY;
       $S->error($S->RPe_BCURLY) if length($max) and $min > $max;
       return $S->object(quant => $min, $max);
     }

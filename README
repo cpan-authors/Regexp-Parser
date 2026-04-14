@@ -305,6 +305,9 @@ ERROR HANDLING
     RPe_IRANGE (-28)
         Invalid [] range "%s-%s"
 
+    RPe_QUANTBIG (-29)
+        Quantifier in {,} bigger than %s
+
 EXTENSIONS
     Here are some ideas for extensions (sub-classes) for this module. Some
     of them may be absorbed into the core functionality of Regexp::Parser in
