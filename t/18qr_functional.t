@@ -7,7 +7,8 @@ use Regexp::Parser;
 # This tests the full pipeline: source → parse → tree → qr() → match.
 
 my @tests = (
-    # [pattern, test_string, should_match, description]
+    # [pattern, test_string, should_match, description, min_perl_version]
+    # min_perl_version is optional; when present, the test is skipped on older Perls
 
     # Literals
     ['abc',       'abc',   1, 'literal match'],
@@ -111,8 +112,8 @@ my @tests = (
     # \K (keep)
     ['foo\Kbar',    'foobar', 1, '\K in match context'],
 
-    # Script run
-    ['(*sr:\d+)',   '123',   1, 'script_run match'],
+    # Script run (Perl 5.30+; verb not recognized by older regex engines)
+    ['(*sr:\d+)',   '123',   1, 'script_run match', 5.030],
 
     # Quotemeta
     ['\Qa.b\E',    'a.b',   1, 'quotemeta literal dot'],
@@ -138,8 +139,9 @@ my @tests = (
     # Conditional
     ['(?(1)a|b)',   'b',    1, 'conditional false branch'],
 
-    # Named characters
-    ['\N{LATIN SMALL LETTER A}', 'a', 1, 'named character'],
+    # Named characters (\N{NAME} in runtime qr// requires 5.30+; older Perls
+    # demand lexer-time resolution that can't happen in a string-built pattern)
+    ['\N{LATIN SMALL LETTER A}', 'a', 1, 'named character', 5.030],
 
     # Hex and control escapes
     ['\x41',        'A',    1, 'hex escape'],
@@ -155,7 +157,16 @@ my @tests = (
 plan tests => scalar @tests;
 
 for my $t (@tests) {
-    my ($pat, $str, $expect, $desc) = @$t;
+    my ($pat, $str, $expect, $desc, $min_perl) = @$t;
+
+    if ($min_perl && $] < $min_perl) {
+        my $need = sprintf("%.3f", $min_perl);
+        SKIP: {
+            skip "$desc requires Perl $need (have $])", 1;
+        }
+        next;
+    }
+
     my $r = Regexp::Parser->new;
     my $ok = $r->regex($pat);
     unless (defined $ok) {
