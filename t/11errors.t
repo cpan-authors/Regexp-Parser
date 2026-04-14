@@ -143,6 +143,9 @@ parses_ok('{abc}', '{abc} is literal text');
 fails_regex('abc\\',     ($r->RPe_ESLASH)[0],   'trailing backslash');
 fails_regex('\\',        ($r->RPe_ESLASH)[0],   'lone backslash');
 
+# Incomplete \c (no character follows)
+fails_regex('\\c',       ($r->RPe_ESLASH)[0],   '\\c at end of string');
+
 # Missing braces on \g, \N
 fails_regex('\\g',       ($r->RPe_BRACES)[0],   '\\g without braces');
 fails_regex('\\N',       ($r->RPe_BRACES)[0],   '\\N without braces');

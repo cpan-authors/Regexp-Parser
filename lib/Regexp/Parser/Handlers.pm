@@ -144,7 +144,7 @@ sub init {
   # control character
   $self->add_handler('\c' => sub {
     my ($S, $cc) = @_;
-    ${&Rx} =~ m{ \G (.?) }xgc;
+    $S->error($S->RPe_ESLASH) if ${&Rx} !~ m{ \G (.) }xgcs;
     my $c = $1;
     return $S->force_object(anyof_char => chr(64 ^ ord $c), "\\c$c") if $cc;
     return $S->object(exact => chr(64 ^ ord $c), "\\c$c");
