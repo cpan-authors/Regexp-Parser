@@ -100,6 +100,16 @@ fails_regex('a{5,3}',    ($r->RPe_BCURLY)[0],  '{n,m} with n > m');
 fails_regex('a{10,0}',   ($r->RPe_BCURLY)[0],  '{10,0} with n > m');
 fails_regex('a{100,1}',  ($r->RPe_BCURLY)[0],  '{100,1} with n > m');
 
+# {n,m} with values exceeding Perl's REG_INFTY (2147483646)
+fails_regex('a{2147483647}',     ($r->RPe_QUANTBIG)[0],  '{n} exceeds REG_INFTY');
+fails_regex('a{2147483647,}',    ($r->RPe_QUANTBIG)[0],  '{n,} exceeds REG_INFTY');
+fails_regex('a{0,2147483647}',   ($r->RPe_QUANTBIG)[0],  '{0,m} exceeds REG_INFTY');
+fails_regex('a{999999999999}',   ($r->RPe_QUANTBIG)[0],  '{huge number}');
+fails_regex('a{3,999999999999}', ($r->RPe_QUANTBIG)[0],  '{n,huge number}');
+parses_ok('a{2147483646}',       '{n} at REG_INFTY is valid');
+parses_ok('a{0,2147483646}',     '{0,m} at REG_INFTY is valid');
+parses_ok('a{2147483646,}',      '{n,} at REG_INFTY is valid');
+
 # Quantifier follows nothing — deferred to visual pass
 fails_visual('*',         ($r->RPe_EQUANT)[0],  'bare * quantifier');
 fails_visual('+',         ($r->RPe_EQUANT)[0],  'bare + quantifier');

@@ -34,5 +34,6 @@ use constant RPe_OUTPOS => --$ENUM, 'POSIX syntax [%s %s] belongs inside charact
 use constant RPe_EMPTYB => --$ENUM, 'Empty \%s{}';
 use constant RPe_FRANGE => --$ENUM, 'False [] range "%s-%s"';
 use constant RPe_IRANGE => --$ENUM, 'Invalid [] range "%s-%s"';
+use constant RPe_QUANTBIG => --$ENUM, 'Quantifier in {,} bigger than %s';
 
 1;
