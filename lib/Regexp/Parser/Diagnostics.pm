@@ -34,5 +34,8 @@ use constant RPe_OUTPOS => --$ENUM, 'POSIX syntax [%s %s] belongs inside charact
 use constant RPe_EMPTYB => --$ENUM, 'Empty \%s{}';
 use constant RPe_FRANGE => --$ENUM, 'False [] range "%s-%s"';
 use constant RPe_IRANGE => --$ENUM, 'Invalid [] range "%s-%s"';
+use constant RPe_DUPLCH => --$ENUM, 'Regexp modifier "%s" may not appear twice';
+use constant RPe_EXCLCH => --$ENUM, 'Regexp modifiers "%s" and "%s" are mutually exclusive';
+use constant RPe_NEGCHR => --$ENUM, 'Regexp modifier "%s" may not appear after the "-"';
 
 1;
