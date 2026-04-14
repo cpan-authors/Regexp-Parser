@@ -248,7 +248,7 @@ sub qr {
   no warnings 'regexp';
   use re 'eval';
 
-  if (@$rx == 1 and $rx->[0]->family eq 'group') {
+  if (@$rx == 1 and $rx->[0]->type eq 'group') {
     my $vis = join "", map $_->qr, @{ $rx->[0]->{data} };
     my $flags = $rx->[0]->on;
     $flags =~ s/^\^//;  # strip caret prefix for qr// modifier

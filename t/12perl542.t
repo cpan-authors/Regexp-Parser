@@ -114,6 +114,17 @@ subtest '(?|...) branch reset groups' => sub {
   my $root = $r->root;
   is($root->[0]->family, 'group', 'branch_reset family');
   is($root->[0]->type, 'branch_reset', 'branch_reset type');
+
+  # qr() must work on branch_reset (was crashing: "on" method missing)
+  {
+    my $p = Regexp::Parser->new;
+    $p->regex('(?|(a)|(b))');
+    my $qr = $p->qr;
+    ok(defined $qr, 'branch_reset qr() returns defined');
+    ok('a' =~ $qr, 'branch_reset qr matches first alternative');
+    ok('b' =~ $qr, 'branch_reset qr matches second alternative');
+    ok('c' !~ $qr, 'branch_reset qr rejects non-matching');
+  }
 };
 
 # ========================================
