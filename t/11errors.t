@@ -259,6 +259,7 @@ warns_regex('(?p{code})', '(?p{}) deprecated warning');
 warns_regex('(?g)',  'useless (?g) flag warning');
 warns_regex('(?c)',  'useless (?c) flag warning');
 warns_regex('(?o)',  'useless (?o) flag warning');
+warns_regex('(?-p)', 'useless (?-p) flag warning');
 
 # Negative flag forms too
 warns_regex('(?-g)', 'useless (?-g) flag warning');
@@ -341,5 +342,11 @@ parses_ok('(?:abc)',      'valid non-capturing group');
 parses_ok('(?{1+1})',    'valid code block');
 parses_ok('(??{1+1})',   'valid logical code block');
 parses_ok('a(?:b|c)d',   'valid alternation in group');
+
+# /p (preserve) flag — accepted silently (Perl 5.10+)
+parses_ok('(?p:x)',      '/p flag in non-capturing group');
+parses_ok('(?p)x',       '/p flag assertion');
+parses_ok('(?pi:x)',     '/p combined with /i flag');
+parses_ok('(?ip:x)',     '/i combined with /p flag');
 
 done_testing;

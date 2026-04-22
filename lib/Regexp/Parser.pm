@@ -919,7 +919,7 @@ assertion followed by C<?>, which doesn't warrant the warning.
 
 Added "Unrecognized escape" warnings to I<all> escape sequence handlers.
 
-The 'g', 'c', and 'o' flags now evoke "Useless ..." warnings when used
+The 'g', 'c', 'o', and 'p' flags now evoke "Useless ..." warnings when used
 in flag and non-capturing group constructs.
 
 =back

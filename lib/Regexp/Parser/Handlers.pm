@@ -40,6 +40,14 @@ sub init {
     return 0x0;
   });
 
+  # /p (preserve) flag (Perl 5.10+) — accepted but no-op inline
+  # Perl only warns on (?-p), not (?p)
+  $self->add_flag('p' => sub {
+    my ($S, $plus) = @_;
+    $S->warn($S->RPe_BADFLG, "-", "p", "don't ", "p") if defined $plus && !$plus;
+    return 0x0;
+  });
+
   $self->add_handler('\a' => sub {
     my ($S, $cc) = @_;
     return $S->force_object(anyof_char => "\a", '\a') if $cc;
@@ -703,7 +711,11 @@ sub init {
 
     if (${&Rx} =~ m{ \G (.) }xgcs) {
       my $n = "$c$1";
-      return $S->$n if $S->can($n);
+      if ($S->can($n)) {
+        # (?p is ambiguous: (?p{...}) is deprecated logical, (?p...) is /p flag
+        # Only dispatch to (?p handler when followed by { (for (?p{)
+        return $S->$n unless $n eq '(?p' && ${&Rx} !~ m{ \G (?= \{ ) }x;
+      }
       &RxPOS--;
     }
     else {
