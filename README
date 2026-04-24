@@ -4,25 +4,19 @@ NAME
 SYNOPSIS
     See examples in "USAGE".
 
-WARNING
-    This is version 0.021. The documentation is (still) incomplete. It may
-    be a little jumbled or hard to understand. If you find a problem, please
-    let me know.
-
-    Documentation has been added and moved around. See
-    Regexp::Parser::Objects for documentation about nodes and the objects
-    that represent them. See Regexp::Parser::Handlers for information about
-    sub-classing this module.
-
 DESCRIPTION
-    This module parses regular expressions (regexes). Its default "grammar"
-    is Perl 5.8.4's regex set. Grammar is quoted because the module does not
-    so much define a grammar as let each matched node state what it expects
-    to match next, but there is not currently a way of extracting a complete
-    grammar. This may change in future versions.
+    This module parses regular expressions (regexes) into traversable object
+    trees for analysis, transformation, or reconstruction. It supports Perl
+    regex syntax through modern Perl, including constructs like named
+    captures, possessive quantifiers, backtracking control verbs, and
+    Unicode properties.
 
-    This module is designed as a replacement (though not drop-in) for my old
-    YAPE::Regex modules.
+    See Regexp::Parser::Objects for documentation about nodes and the
+    objects that represent them. See Regexp::Parser::Handlers for
+    information about sub-classing this module.
+
+    This module is designed as a replacement (though not drop-in) for the
+    old YAPE::Regex modules.
 
 USAGE
   Creating an Instance
@@ -40,8 +34,21 @@ USAGE
         constructor.
 
     $parser->regex($regex)
+    $parser->regex($regex, $flags)
         Clears the parser's memory and sets $regex as the regex to be
         parsed.
+
+        If $flags is provided, it should be a string of flag characters (any
+        combination of "m", "s", "i", "x", "a", "d", "l", "u", "n") that
+        will be pre-set before parsing begins. This is equivalent to
+        wrapping the regex in "(?flags:...)" but without altering the
+        resulting parse tree.
+
+          # parse with /x flag pre-set
+          $parser->regex(' foo [ ] bar ', 'x');
+
+          # parse with /ix flags pre-set
+          $parser->regex('hello', 'ix');
 
     These two approaches do an initial pass over the regex to make sure it
     is well-formed -- any warnings or errors will be determined during this
@@ -305,182 +312,92 @@ ERROR HANDLING
     RPe_IRANGE (-28)
         Invalid [] range "%s-%s"
 
-EXTENSIONS
-    Here are some ideas for extensions (sub-classes) for this module. Some
-    of them may be absorbed into the core functionality of Regexp::Parser in
-    the future. Module names are merely the author's suggestions.
+SUPPORTED SYNTAX
+    The parser handles the following Perl regex constructs:
 
-    Regexp::WordBounds
-        Adds handlers for "<" and ">" anchors, which match at the beginning
-        and end of a "word", respectively. "/</" is equivalent to
-        "/(?!\w)(?=\w)/", and "/>/" is equivalent to "/(?<=\w)(?!\w)/". (So
-        that's the object's qr() method for you right there!)
+  Core (Perl 5.6+)
+    Literals, character classes ("[...]", "\w", "\d", "\s" and negations),
+    anchors ("^", "$", "\b", "\B", "\A", "\Z", "\z", "\G"), quantifiers
+    ("*", "+", "?", "{n,m}" and non-greedy variants), alternation ("|"),
+    groups and captures, backreferences ("\1"), lookahead/lookbehind
+    ("(?=...)", "(?!...)", "(?<=...)", "(?<!...)"), non-capturing groups
+    ("(?:...)"), atomic groups ("(?"...)>), inline flags
+    ("(?imsx-imsx:...)"), conditionals ("(?(N)...|...)"), comments
+    ("(?#...)"), code blocks ("(?{...})", "(??{...})"), "\N{name}" named
+    characters, "\p{Prop}"/"\P{Prop}" Unicode properties, POSIX classes
+    ("[:alpha:]").
 
-    Regexp::MinLength
-        Implements a min_length() method for all objects that determines the
-        minimum length of a string that would be matched by the regex;
-        provides a front-end method for the parser.
+  Perl 5.10+
+    Named captures "(?<name>...)", named backreferences ("\k<name">,
+    "\k'name'", "\k{name}"), possessive quantifiers ("a++", "a*+", "a?+",
+    "a{n,m}+"), "\K" (keep/reset match start), "\R" (generic linebreak),
+    "\h"/"\H" (horizontal whitespace), "\v"/"\V" (vertical whitespace),
+    "\gN"/"\g{N}"/"\g{-N}"/"\g{+N}" (relative/absolute backreferences),
+    recursive patterns ("(?R)", "(?1)", "(?&name)", "(?+1)", "(?-1)"),
+    branch reset groups "(?|...)".
 
-    Regexp::QuantAttr
-        Removes quantifiers as objects, and makes 'min' and 'max' attributes
-        of other objects themselves.
+  Perl 5.14+
+    Caret flag reset "(?^:...)", charset modifier flags ("/a", "/d", "/l",
+    "/u"), octal escapes "\o{NNN}".
 
-    Regexp::Explain (pending, Jeff Pinyan)
-        Produces a human-readable explanation of the execution of a regex.
-        Will be able to produce HTML output that color-codes the elements of
-        the regex according to a style-sheet (syntax highlighting).
+  Perl 5.18+
+    Extended character classes "(?[...])" with set operations (parsed as
+    opaque content).
 
-    Regexp::Reverse (difficulty rating: ****)
-        Reverses a regex so it matches backwards. Ex.: "/\s+$/" becomes
-        "/^\n?\s+/", which perhaps gets optimized to "/^\s+/". The
-        difficulty rating is so high because of cases like "/(\d+)(\w+)/"
-        which, when reversed, *can* match differently.
+  Perl 5.22+
+    Extended boundary types "\b{gcb}", "\b{wb}", "\b{sb}", "\b{lb}" and
+    their negated "\B{...}" forms. The "/n" (no-capture) flag. "/aa"
+    double-a flag.
 
-          "100years" =~ /(\d+)(\w+)/;  # $1 = 100, $2 = years
-          "sraey001" =~ /(\w+)(\d+)/;  # $1 = sraey00, $2 = 1
+  Perl 5.26+
+    "/xx" extended-extended mode (whitespace in character classes).
 
-        This means character classes should store a hash of what characters
-        they represent, as well as the macros "\w", "\d", etc. Then this
-        example would be reversed into something like "/(\w+(?<!\d))(\d+)/".
-        The other difficulty is complex regexes with if-then assertions. I
-        don't want to think about that. This module is more of a theoretical
-        exercise, a jump-start to built-in reversing capability in Perl.
+  Perl 5.28+
+    Alphabetic assertion forms: "(*positive_lookahead:...)", "(*pla:...)",
+    "(*negative_lookahead:...)", "(*nla:...)", "(*positive_lookbehind:...)",
+    "(*plb:...)", "(*negative_lookbehind:...)", "(*nlb:...)",
+    "(*atomic:...)". Script run assertions: "(*script_run:...)",
+    "(*sr:...)", "(*atomic_script_run:...)", "(*asr:...)".
 
-    Regexp::CharClassOps
-        Implements character class operations like union, intersection, and
-        subtraction.
+  Backtracking control verbs
+    "(*ACCEPT)", "(*FAIL)", "(*F)", "(*MARK:name)", "(*SKIP)",
+    "(*SKIP:name)", "(*PRUNE)", "(*COMMIT)", "(*THEN)".
 
-    Regexp::Optimize
-        Eliminates redundancy from a regex. It should have various options,
-        such as whether to do optimize...
+  Other
+    "\Q...\E" (quotemeta), "\X" (extended grapheme cluster),
+    "(?(DEFINE)...)" definition groups, named conditions
+    "(?(<name")...|...)> and "(?('name')...|...)", Python-compatible syntax
+    ("(?P<name>...)", "(?P=name)", "(?P>name)").
 
-          # strings
-          /foo|father|fort/  => /f(?:o(?:o|rt)|ather)/
-
-          # char classes
-          /[\w\d][a-zaeiou]/ => /[\w][a-z]/
-
-          # redundancy
-          /^\n?\s+/          => /^\s+/
-          /[\w]/             => /\w/
-
-        There are other possibilities as well.
-
-HISTORY
-  0.021 -- July 3, 2004
-    *anyof_class* Changed
-        If an *anyof_class* element is a Unicode property or a Perl class
-        (like "\w" or "\S"), the object's "data" field points to the
-        underlying object type (*prop*, *alnum*, etc.). If the element is a
-        POSIX class, the "data" field is the string "POSIX". POSIX classes
-        don't exist in a regex outside of a character class, so I'm a little
-        wary of making them objects in their own right, even if it would
-        create a better sense of uniformity.
-
-    Documentation
-        Fixed some poor wording, and documented the problem with using
-        SUPER:: inside MyClass::__object__.
-
-    Bug Fixes
-        Character classes weren't closing properly in the tree. Fixed.
-
-        Standard escapes ("\a", "\e", etc.) were being returned as *exact*
-        nodes instead of *anyof_char* nodes when inside character classes.
-        Fixed. (Mike Lambert)
-
-        Non-grouping parentheses weren't being parsed properly. Fixed. (Mike
-        Lambert)
-
-        Flags weren't being turned off. Fixed.
-
-  0.02 -- July 1, 2004
-    Better Abstracting
-        The object() method calls force_object(). force_object() creates an
-        object no matter what pass the parser is making; object() will
-        return immediately if it's just the first pass. This means that
-        force_object() should be used to create stand-alone objects.
-
-        Each object now has an insert() method that defines how it gets
-        placed into the regex tree. Most objects inherit theirs from the
-        base object class.
-
-        The walker() method is also now abstracted -- each node it comes
-        across will have its walk() method called. And the ending node for
-        stack-type nodes has been abstracted to the ender() method of the
-        node.
-
-        The init() method has been moved to another file to help keep *this*
-        file as abstract as possible. Regexp::Parser installs its handlers
-        in Regexp/Parser/Handlers.pm. That file might end up being where
-        documentation on writing handlers goes.
-
-        The documentation on sub-classing includes an ordered list of what
-        packages a method is looked up in for a given object of type 'OBJ':
-        YourMod::OBJ, YourMod::__object__, Regexp::Parser::OBJ,
-        Regexp::Parser::__object__.
-
-    Cleaner Grammar Flow
-        Now the only places 'atom' gets pushed to the queue are after an
-        opening parenthesis or after 'atom' matches. This makes things flow
-        more cleanly.
-
-    Flag Handlers
-        Flag handlers now receive an additional argument that says whether
-        they're being turned on or off. Also, if the flag handler returns 0,
-        that flag is removed from the resulting object's visual flag set.
-        That means "(?gi-o)" becomes "(?i)".
-
-    Diagnostics and Bug Fixes
-        More tests added (specifically, making sure "(?(N)T|F)" works
-        right). In doing so, found that the "too many branches" error wasn't
-        being raised until the second pass. Figured out how to improve the
-        grammar to get it to work properly. Also added tests for the new
-        captures() method.
-
-        I changed the field 'class' to 'family' in objects. I was getting
-        confused by it, so I figured it was a sign that I'd chosen an awful
-        name for the field. There will still be a class() method in
-        __object__, but it will throw a "use of class() is deprecated"
-        warning.
-
-        Quantifiers of the form "{n}" were being misrepresented as "{n,}".
-        It's been corrected. (Mike Lambert)
-
-        "\b" was being turned into "b" inside a character class, instead of
-        a backspace. (Mike Lambert)
-
-        Fixed errant "Quantifier unexpected" warning raised by a zero-width
-        assertion followed by "?", which doesn't warrant the warning.
-
-        Added "Unrecognized escape" warnings to *all* escape sequence
-        handlers.
-
-        The 'g', 'c', and 'o' flags now evoke "Useless ..." warnings when
-        used in flag and non-capturing group constructs.
-
-  0.01 -- June 29, 2004
-    First Release
-        Documentation not complete, etc.
+  Opaque constructs
+    Code blocks "(?{...})" and "(??{...})" execute at parse time but their
+    content is stored as an opaque string. Extended character classes
+    "(?[...])" are similarly stored as opaque content.
 
 CAVEATS
-    * Bugs...?
-        I'd like to say this module doesn't have bugs. I don't know of any
-        in this current version, because I've tried to fix those I've
-        already found. Those who find bugs should email me. Messages should
-        include the code you ran that contains the bug, and your opinion on
-        what's wrong with it.
+    *   Variable interpolation
 
-    * Variable interpolation
         This module parses *regexes*, not Perl. If you send a single-quoted
-        string as a regex with a variable in it, that '$' will be
+        string as a regex with a variable in it, that "$" will be
         interpreted as an anchor. If you want to include variables, use
         "qr//", or mix single- and double-quoted strings in building your
         regex.
 
+    *   visual() consumes the stack
+
+        Calling "visual()" triggers "parse()" internally. You can call
+        "parse()" then "visual()", but calling "visual()" then "parse()"
+        will fail because the parse stack has already been consumed.
+
+HISTORY
+    See the Changes file for the full release history.
+
 AUTHOR
     Jeff "japhy" Pinyan, japhy@perlmonk.org
 
-COPYRIGHT
+    Currently maintained by Todd Rinaldo and the cpan-authors team.
+
+COPYRIGHT AND LICENSE
     Copyright (c) 2004 Jeff Pinyan japhy@perlmonk.org. All rights reserved.
     This program is free software; you can redistribute it and/or modify it
     under the same terms as Perl itself.
