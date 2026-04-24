@@ -61,6 +61,10 @@ my @patterns = (
     '(?:a|b|c)',
     '(?:a(?:b(?:c)))',
 
+    # /p flag (preserve, Perl 5.10+) — no-op inline, stripped in visual
+    '(?p:x)',
+    '(?pi:x)',
+
     # Groups - capturing
     '(abc)',
     '(a)(b)(c)',
