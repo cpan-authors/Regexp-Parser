@@ -637,6 +637,10 @@ sub init {
         if ($S->can($posix)) { $$ret = $S->$posix($neg, $how) }
         else { $S->error($S->RPe_BADPOS, "$how$neg$name$how") }
       }
+      elsif (&Rf & 0x200 and ${&Rx} =~ m{ \G [ \t]+ }xgc) {
+        # /xx: skip unescaped spaces and tabs inside character classes (Perl 5.26+)
+        redo;
+      }
       elsif (${&Rx} =~ m{ \G (.) }xgcs) {
         $$ret = $S->force_object(anyof_char => $1);
       }
