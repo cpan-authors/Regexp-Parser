@@ -734,10 +734,28 @@ sub init {
     &RxPOS -= length($on.$off);
     my $old = &RxPOS;
 
+    my $charset_seen = '';  # track first charset flag (a/d/l/u)
     for (split //, $on) {
       &RxPOS++;
       if (my $f = $S->can("FLAG_$_")) {
         my $v = $S->$f(1) and $r_on .= $_;
+        # charset flag conflict detection (Perl 5.14+)
+        if ($v && ($v & 0xF0)) {  # this is a charset flag
+          if ($charset_seen) {
+            if ($charset_seen eq $_ && $_ eq 'a') {
+              # aa (strict ASCII) is valid — continue
+            }
+            elsif ($charset_seen eq $_) {
+              # dd, ll, uu — doubled non-a charset flag
+              $S->error($S->RPe_DUPLCH, $_);
+            }
+            else {
+              # different charset flags — mutually exclusive
+              $S->error($S->RPe_EXCLCH, $charset_seen, $_);
+            }
+          }
+          $charset_seen = $_;
+        }
         # /xx: if x is already on, set the xx bit (Perl 5.26+)
         if ($_ eq 'x' && ($f_on & $v)) {
           $f_on |= 0x200;  # FLAG_xx
@@ -756,6 +774,10 @@ sub init {
         &RxPOS++;
         if (my $f = $S->can("FLAG_$_")) {
           my $v = $S->$f(0) and $r_off .= $_;
+          # charset flags may not appear after - (Perl 5.14+)
+          if ($v && ($v & 0xF0)) {
+            $S->error($S->RPe_NEGCHR, $_);
+          }
           # -xx: also turn off the xx bit (Perl 5.26+)
           if ($_ eq 'x' && ($f_off & $v)) {
             $f_off |= 0x200;  # FLAG_xx

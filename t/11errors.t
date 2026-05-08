@@ -264,6 +264,46 @@ warns_regex('(?o)',  'useless (?o) flag warning');
 warns_regex('(?-g)', 'useless (?-g) flag warning');
 
 ##
+## 9b. CHARSET FLAG CONFLICTS — RPe_DUPLCH, RPe_EXCLCH, RPe_NEGCHR
+##
+
+# Doubled non-a charset flags (Perl rejects these)
+fails_regex('(?dd:a)',   ($r->RPe_DUPLCH)[0],  'doubled d flag');
+fails_regex('(?ll:a)',   ($r->RPe_DUPLCH)[0],  'doubled l flag');
+fails_regex('(?uu:a)',   ($r->RPe_DUPLCH)[0],  'doubled u flag');
+
+# Mutually exclusive charset flags
+fails_regex('(?al:a)',   ($r->RPe_EXCLCH)[0],  'a and l mutually exclusive');
+fails_regex('(?ad:a)',   ($r->RPe_EXCLCH)[0],  'a and d mutually exclusive');
+fails_regex('(?au:a)',   ($r->RPe_EXCLCH)[0],  'a and u mutually exclusive');
+fails_regex('(?du:a)',   ($r->RPe_EXCLCH)[0],  'd and u mutually exclusive');
+fails_regex('(?dl:a)',   ($r->RPe_EXCLCH)[0],  'd and l mutually exclusive');
+fails_regex('(?lu:a)',   ($r->RPe_EXCLCH)[0],  'l and u mutually exclusive');
+
+# Charset flags not allowed after - (negation section)
+fails_regex('(?-a:a)',   ($r->RPe_NEGCHR)[0],  'charset a after -');
+fails_regex('(?-d:a)',   ($r->RPe_NEGCHR)[0],  'charset d after -');
+fails_regex('(?-l:a)',   ($r->RPe_NEGCHR)[0],  'charset l after -');
+fails_regex('(?-u:a)',   ($r->RPe_NEGCHR)[0],  'charset u after -');
+fails_regex('(?i-a:a)',  ($r->RPe_NEGCHR)[0],  'charset a after - with on-flags');
+fails_regex('(?i-al:a)', ($r->RPe_NEGCHR)[0],  'charset a after - mixed');
+
+# Valid charset flag usage
+parses_ok('(?aa:a)',     'aa (strict ASCII) is valid');
+parses_ok('(?a:a)',      'single a flag valid');
+parses_ok('(?d:a)',      'single d flag valid');
+parses_ok('(?l:a)',      'single l flag valid');
+parses_ok('(?u:a)',      'single u flag valid');
+parses_ok('(?ai:a)',     'charset a + modifier i valid');
+parses_ok('(?aai:a)',    'strict ASCII + modifier i valid');
+parses_ok('(?^a:a)',     'caret + charset a valid');
+parses_ok('(?^aa:a)',    'caret + strict ASCII valid');
+
+# Caret with charset conflicts should also fail
+fails_regex('(?^al:a)',  ($r->RPe_EXCLCH)[0],  'caret + a and l exclusive');
+fails_regex('(?^du:a)',  ($r->RPe_EXCLCH)[0],  'caret + d and u exclusive');
+
+##
 ## 10. BAD ESCAPE IN CHARACTER CLASS WARNINGS — RPe_BADESC
 ##
 

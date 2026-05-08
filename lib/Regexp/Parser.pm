@@ -706,6 +706,18 @@ False [] range "%s-%s"
 
 Invalid [] range "%s-%s"
 
+=item RPe_DUPLCH (-29)
+
+Regexp modifier "%s" may not appear twice
+
+=item RPe_EXCLCH (-30)
+
+Regexp modifiers "%s" and "%s" are mutually exclusive
+
+=item RPe_NEGCHR (-31)
+
+Regexp modifier "%s" may not appear after the "-"
+
 =back
 
 =head1 EXTENSIONS
