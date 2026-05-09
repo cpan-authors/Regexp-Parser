@@ -706,6 +706,10 @@ False [] range "%s-%s"
 
 Invalid [] range "%s-%s"
 
+=item RPe_QUANTBIG (-29)
+
+Quantifier in {,} bigger than %s
+
 =back
 
 =head1 EXTENSIONS
