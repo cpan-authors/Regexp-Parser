@@ -568,11 +568,15 @@ sub init {
         }
 
         $v .= $1 while ${&Rx} =~ m{ \G ([0-7]) }xgc;
-        return $S->object(exact => chr oct $v, sprintf("\\%03s", $v));
+        my $chr = chr oct $v;
+        my $vis = sprintf("\\%03s", $v);
+        return $S->force_object(anyof_char => $chr, $vis) if $cc;
+        return $S->object(exact => $chr, $vis);
       }
 
       $S->warn($S->RPe_BADESC, $c = $n, "") if $n =~ /[a-zA-Z]/;
 
+      return $S->force_object(anyof_char => $n, $c) if $cc;
       return $S->object(exact => $n, $c);
     }
 
