@@ -253,6 +253,7 @@ sub init {
     if ($name eq '{') {
       $S->error($S->RPe_RBRACE, 'P') if ${&Rx} !~ m{ \G ([^\}]*) \} }xgc;
       $name = $1;
+      $S->error($S->RPe_EMPTYB, 'P') if $name !~ /\S/ || $name eq '^';
     }
 
     return $S->force_object(anyof_class => $S->force_object(prop => $name, 1)) if $cc;
@@ -268,6 +269,7 @@ sub init {
     if ($name eq '{') {
       $S->error($S->RPe_RBRACE, 'p') if ${&Rx} !~ m{ \G ([^\}]*) \} }xgc;
       $name = $1;
+      $S->error($S->RPe_EMPTYB, 'p') if $name !~ /\S/ || $name eq '^';
     }
 
     return $S->force_object(anyof_class => $S->force_object(prop => $name, 0)) if $cc;

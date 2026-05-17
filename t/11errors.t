@@ -157,6 +157,14 @@ fails_regex('\\g{1',     ($r->RPe_RBRACE)[0],   '\\g{... missing right brace');
 fails_regex('\\p',       ($r->RPe_EMPTYB)[0],   '\\p at end of string');
 fails_regex('\\P',       ($r->RPe_EMPTYB)[0],   '\\P at end of string');
 
+# Empty braced \p{} / \P{} — Perl rejects these as "Empty \p{}"
+fails_regex('\\p{}',     ($r->RPe_EMPTYB)[0],   '\\p{} empty braced property');
+fails_regex('\\P{}',     ($r->RPe_EMPTYB)[0],   '\\P{} empty braced property');
+fails_regex('\\p{^}',    ($r->RPe_EMPTYB)[0],   '\\p{^} negation prefix only');
+fails_regex('\\p{ }',    ($r->RPe_EMPTYB)[0],   '\\p{ } whitespace-only property');
+fails_regex('[\\p{}]',   ($r->RPe_EMPTYB)[0],   '\\p{} inside character class');
+fails_regex('[\\P{}]',   ($r->RPe_EMPTYB)[0],   '\\P{} inside character class');
+
 ##
 ## 4. BACKREFERENCE ERRORS — RPe_BGROUP
 ##
