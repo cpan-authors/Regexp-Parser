@@ -53,10 +53,14 @@ sub regex {
   my ($self, $rx, $flags) = @_;
   my $init_flags = 0;
   if (defined $flags) {
+    # FLAG callbacks (g/c/o) may call warn() which accesses Rx,
+    # so initialize the regex ref before processing flags
+    $self->{regex} = \"$rx";
+    &RxPOS = 0;
     for my $ch (split //, $flags) {
       my $method = "FLAG_$ch";
       if ($self->can($method)) {
-        my $v = $self->$method;
+        my $v = $self->$method(1);
         # /xx: if x is already on, set the xx bit (Perl 5.26+)
         if ($ch eq 'x' && ($init_flags & $v)) {
           $init_flags |= 0x200;
