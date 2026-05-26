@@ -324,6 +324,14 @@
       vis => $vis,
     }, $class;
   }
+
+  sub qr {
+    my $self = shift;
+    if ($self->{vis} =~ /^\\N\{/) {
+      return sprintf("\\x{%X}", ord($self->{data}));
+    }
+    $self->visual;
+  }
 }
 
 
@@ -613,6 +621,21 @@
   sub visual {
     my $self = shift;
     join "", @{ $self->{vis} };
+  }
+
+  sub qr {
+    my $self = shift;
+    my @parts;
+    for my $i (0 .. $#{$self->{vis}}) {
+      if ($self->{vis}[$i] =~ /^\\N\{/) {
+        # \N{NAME} must be resolved by the lexer — emit hex escape for portability
+        push @parts, sprintf("\\x{%X}", ord($self->{data}[$i]));
+      }
+      else {
+        push @parts, $self->{vis}[$i];
+      }
+    }
+    join "", @parts;
   }
 
   sub type {
