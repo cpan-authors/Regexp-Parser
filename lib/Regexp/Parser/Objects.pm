@@ -1627,6 +1627,25 @@
 
 
 {
+  # \N (not newline, added in Perl 5.12)
+  package Regexp::Parser::nonnewline;
+  our @ISA = qw( Regexp::Parser::__object__ );
+
+  sub new {
+    my ($class, $rx) = @_;
+    my $self = bless {
+      rx => $rx,
+      flags => $rx->{flags}[-1],
+      family => 'nonnewline',
+      type => 'nonnewline',
+      vis => '\N',
+    }, $class;
+    return $self;
+  }
+}
+
+
+{
   # \R (generic linebreak, added in Perl 5.10)
   package Regexp::Parser::lnbreak;
   our @ISA = qw( Regexp::Parser::__object__ );
@@ -2105,7 +2124,7 @@ character class's ender is an C<anyof_close> node.
 The general family of this object.  These are any of: alnum, anchor,
 anyof, anyof_char, anyof_class, anyof_range, assertion, branch,
 charclass_expr, close, clump, digit, exact, flags, group, groupp,
-grouppn, hspace, lnbreak, minmod, open, possessive, prop, quant,
+grouppn, hspace, lnbreak, minmod, nonnewline, open, possessive, prop, quant,
 recurse, ref, reg_any, verb, vspace.
 
 =item my $f = $obj->flags()
@@ -2670,6 +2689,17 @@ Neg: 1 if negated
 
 Vertical whitespace character class shorthand (Perl 5.10+).  Matches
 characters like newline, carriage return, form feed, and vertical tab.
+
+=head2 nonnewline
+
+Family: nonnewline
+
+Types: nonnewline (C<\N>)
+
+Not-newline assertion (Perl 5.12+).  Matches any character except C<\n>,
+regardless of the C</s> flag.  Unlike C<.>, which matches newlines under
+C</s>, C<\N> never matches a newline.  Not valid inside character classes
+(use C<\N{NAME}> or C<\N{U+HHHH}> there instead).
 
 =head2 lnbreak
 
