@@ -474,6 +474,17 @@ value:
 
   my $capture_2 = $parser->captures(2);
 
+=head2 Getting Named Captures
+
+You can access the named capture groups with the named_captures() method:
+
+  my $all_named = $parser->named_captures();
+
+This returns a hash reference mapping capture names to their node objects.
+To look up a specific named capture:
+
+  my $node = $parser->named_captures('year');
+
 =head2 Walking the Tree
 
 To walk over the created tree, create an iterator with walker()Z<>:
@@ -708,229 +719,87 @@ Invalid [] range "%s-%s"
 
 =back
 
-=head1 EXTENSIONS
+=head1 SUPPORTED CONSTRUCTS
 
-Here are some ideas for extensions (sub-classes) for this module.  Some
-of them may be absorbed into the core functionality of F<Regexp::Parser>
-in the future.  Module names are merely the author's suggestions.
+This module supports parsing the following Perl regex constructs:
 
 =over 4
 
-=item Regexp::WordBounds
+=item Grouping
 
-Adds handlers for C<< < >> and C<< > >> anchors, which match at the
-beginning and end of a "word", respectively.  C<< /</ >> is equivalent to
-C</(?!\w)(?=\w)/>, and C<< />/ >> is equivalent to C</(?<=\w)(?!\w)/>. (So
-that's the object's qr() method for you right there!)
+C<(...)>, C<(?:...)>, C<< (?<name>...) >>,
+C<(?|...)> (branch reset), C<< (?>...) >> (atomic).
+Also supports Python-compatible C<(?P=name)> and C<< (?P>name) >> syntax.
 
-=item Regexp::MinLength
+=item Quantifiers
 
-Implements a min_length() method for all objects that determines the
-minimum length of a string that would be matched by the regex; provides
-a front-end method for the parser.
+C<*>, C<+>, C<?>, C<{n}>, C<{n,}>, C<{n,m}> -- with greedy (default),
+lazy (C<?>), and possessive (C<+>) variants
 
-=item Regexp::QuantAttr
+=item Assertions
 
-Removes quantifiers as objects, and makes 'min' and 'max' attributes of
-other objects themselves.
+C<^>, C<$>, C<\b>, C<\B>, C<\A>, C<\Z>, C<\z>, C<\G>,
+C<\K> (keep), C<\b{type}> (extended boundaries)
 
-=item Regexp::Explain (pending, Jeff Pinyan)
+=item Lookaround
 
-Produces a human-readable explanation of the execution of a regex.  Will
-be able to produce HTML output that color-codes the elements of the regex
-according to a style-sheet (syntax highlighting).
+C<(?=...)>, C<(?!...)>, C<(?<=...)>, C<(?<!...)>,
+and alphabetic forms C<(*pla:...)>, C<(*nla:...)>, C<(*plb:...)>,
+C<(*nlb:...)>
 
-=item Regexp::Reverse (difficulty rating: ****)
+=item Character classes
 
-Reverses a regex so it matches backwards.  Ex.: C</\s+$/> becomes
-C</^\n?\s+/>, which perhaps gets optimized to C</^\s+/>.  The difficulty
-rating is so high because of cases like C</(\d+)(\w+)/> which, when
-reversed, I<can> match differently.
+C<[...]>, C<[^...]>, POSIX classes C<[[:alpha:]]>,
+C<\d>, C<\D>, C<\w>, C<\W>, C<\s>, C<\S>, C<\h>, C<\H>, C<\v>, C<\V>,
+C<\R> (linebreak), C<\N> (non-newline), C<\X> (extended grapheme cluster),
+C<.> (any)
 
-  "100years" =~ /(\d+)(\w+)/;  # $1 = 100, $2 = years
-  "sraey001" =~ /(\w+)(\d+)/;  # $1 = sraey00, $2 = 1
+=item Unicode properties
 
-This means character classes should store a hash of what characters
-they represent, as well as the macros C<\w>, C<\d>, etc.  Then this
-example would be reversed into something like C</(\w+(?<!\d))(\d+)/>.
-The other difficulty is complex regexes with if-then assertions.  I
-don't want to think about that.  This module is more of a theoretical
-exercise, a jump-start to built-in reversing capability in Perl.
+C<\p{Name}>, C<\P{Name}>, C<\p{Script=Latin}>, etc.
 
-=item Regexp::CharClassOps
+=item Escape sequences
 
-Implements character class operations like union, intersection, and
-subtraction.
+C<\a>, C<\e>, C<\f>, C<\n>, C<\r>, C<\t>,
+C<\xHH>, C<\x{HHHH}>, C<\NNN> (octal), C<\o{NNN}>,
+C<\cX> (control), C<\N{NAME}>, C<\N{U+HHHH}>
 
-=item Regexp::Optimize
+=item Backreferences
 
-Eliminates redundancy from a regex.  It should have various options,
-such as whether to do optimize...
+C<\1>..C<\9>, C<\g{N}>, C<\g{-N}>, C<\g{+N}>,
+C<< \k<name> >>, C<\k'name'>, C<\k{name}>,
+C<(?P=name)>
 
-  # strings
-  /foo|father|fort/  => /f(?:o(?:o|rt)|ather)/
+=item Flags
 
-  # char classes
-  /[\w\d][a-zaeiou]/ => /[\w][a-z]/
+C<(?imsx...)>, C<(?-imsx...)>, C<(?^...)> (caret reset),
+C<(?a)>, C<(?aa)>, C<(?d)>, C<(?l)>, C<(?u)>, C<(?n)>, C</xx>
 
-  # redundancy
-  /^\n?\s+/          => /^\s+/
-  /[\w]/             => /\w/
+=item Conditionals
 
-There are other possibilities as well.
+C<(?(N)...|...)>, C<(?(DEFINE)...)>,
+C<< (?(<name>)...|...) >>, C<(?('name')...|...)>
 
-=back
+=item Backtracking control
 
-=head1 HISTORY
+C<(*ACCEPT)>, C<(*FAIL)>, C<(*F)>, C<(*MARK:name)>,
+C<(*PRUNE)>, C<(*SKIP)>, C<(*THEN)>, C<(*COMMIT)>
 
-=head2 0.022b -- July 6, 2004
+=item Recursive patterns
 
-=over 4
+C<(?R)>, C<(?N)>, C<(?&name)>, C<< (?P>name) >>
 
-=item Hierarchy Changes
+=item Script runs
 
-There are now abstract classes I<anchor> and I<assertion>. You can't call
-their new() method directly, you can only call it through an object that
-inherits from that class.
+C<(*script_run:...)>, C<(*sr:...)>,
+C<(*atomic_script_run:...)>, C<(*asr:...)>
 
-There are no longer I<star>, I<plus>, and I<curly> classes; they have been
-combined into one class, I<quantifier>.  You pass it the min and max,
-and the object's C<type> is determined dynamically.
+=item Special
 
-=item Character Class Hashes
-
-Character classes (I<anyof> objects) now have another attribute, C<charmap>,
-which is a hash reference holding character values (eg. 65 for 'A') and
-the number of times that character appeared in the character class.  The
-character class C<[A-CB-E]> would have a character map of C<< { 65 => 1, 66
-=> 2, 67 => 2, 68 => 1, 69 => 1} >>.  This will reflect ranges and embedded
-classes (such as C<[:cntrl:]> or C<\p{Print}>.
-
-=item Character Class Rendering
-
-The visual() method of I<anyof> objects will quell the repetition of any
-character in the class I<outside> of embedded classes, so the class
-C<[\w\d:4-65:]> will render as C<[\w\d:4-6]>.  If you want to prevent
-characters and ranges from being display if they are included in an embedded
-class, set the I<anyof> object's C<strict> attribute to 1; the character
-class would render as C<[\w\d:]>.  If you want to go even further and remove
-any embedded class that is I<entirely> redundant (that is, I<every>
-character in that embedded class is already found in the class), set the
-C<strict> attribute to 2; the class above would render as C<[\w:]>.
-
-=back
-
-=head2 0.021 -- July 3, 2004
-
-=over 4
-
-=item I<anyof_class> Changed
-
-If an I<anyof_class> element is a Unicode property or a Perl class (like
-C<\w> or C<\S>), the object's C<data> field points to the underlying
-object type (I<prop>, I<alnum>, etc.).  If the element is a POSIX class,
-the C<data> field is the string "POSIX".  POSIX classes don't exist in a
-regex outside of a character class, so I'm a little wary of making them
-objects in their own right, even if it would create a better sense of
-uniformity.
-
-=item Documentation
-
-Fixed some poor wording, and documented the problem with using F<SUPER::>
-inside F<MyClass::__object__>.
-
-=item Bug Fixes
-
-Character classes weren't closing properly in the tree.  Fixed.
-
-Standard escapes (C<\a>, C<\e>, etc.) were being returned as I<exact>
-nodes instead of I<anyof_char> nodes when inside character classes.  Fixed.
-(Mike Lambert)
-
-Non-grouping parentheses weren't being parsed properly.  Fixed.  (Mike
-Lambert)
-
-Flags weren't being turned off.  Fixed.
-
-=back
-
-=head2 0.02 -- July 1, 2004
-
-=over 4
-
-=item Better Abstracting
-
-The object() method calls force_object().  force_object() creates an
-object no matter what pass the parser is making; object() will return
-immediately if it's just the first pass.  This means that force_object()
-should be used to create stand-alone objects.
-
-Each object now has an insert() method that defines how it gets placed
-into the regex tree.  Most objects inherit theirs from the base object
-class.
-
-The walker() method is also now abstracted -- each node it comes across
-will have its walk() method called.  And the ending node for stack-type
-nodes has been abstracted to the ender() method of the node.
-
-The init() method has been moved to another file to help keep I<this>
-file as abstract as possible.  F<Regexp::Parser> installs its handlers
-in F<Regexp/Parser/Handlers.pm>.  That file might end up being where
-documentation on writing handlers goes.
-
-The documentation on sub-classing includes an ordered list of what
-packages a method is looked up in for a given object of type 'OBJ':
-F<YourMod::OBJ>, F<YourMod::__object__>, F<Regexp::Parser::OBJ>,
-F<Regexp::Parser::__object__>.
-
-=item Cleaner Grammar Flow
-
-Now the only places 'atom' gets pushed to the queue are after an opening
-parenthesis or after 'atom' matches.  This makes things flow more
-cleanly.
-
-=item Flag Handlers
-
-Flag handlers now receive an additional argument that says whether
-they're being turned on or off.  Also, if the flag handler returns 0,
-that flag is removed from the resulting object's visual flag set.  That
-means C<(?gi-o)> becomes C<(?i)>.
-
-=item Diagnostics and Bug Fixes
-
-More tests added (specifically, making sure C<(?(N)T|F)> works right).
-In doing so, found that the "too many branches" error wasn't being raised
-until the second pass.  Figured out how to improve the grammar to get
-it to work properly.  Also added tests for the new captures() method.
-
-I changed the field 'class' to 'family' in objects.  I was getting
-confused by it, so I figured it was a sign that I'd chosen an awful name
-for the field.  There will still be a class() method in F<__object__>,
-but it will throw a "use of class() is deprecated" warning.
-
-Quantifiers of the form C<{n}> were being misrepresented as C<{n,}>.
-It's been corrected.  (Mike Lambert)
-
-C<\b> was being turned into "b" inside a character class, instead of
-a backspace.  (Mike Lambert)
-
-Fixed errant "Quantifier unexpected" warning raised by a zero-width
-assertion followed by C<?>, which doesn't warrant the warning.
-
-Added "Unrecognized escape" warnings to I<all> escape sequence handlers.
-
-The 'g', 'c', and 'o' flags now evoke "Useless ..." warnings when used
-in flag and non-capturing group constructs.
-
-=back
-
-=head2 0.01 -- June 29, 2004
-
-=over 4
-
-=item First Release
-
-Documentation not complete, etc.
+C<(?{code})>, C<(??{code})> (opaque -- code is stored as string),
+C<(?[...])> (extended character class, opaque),
+C<(?#comment)>,
+C<\Q...\E> (quotemeta)
 
 =back
 
@@ -938,20 +807,26 @@ Documentation not complete, etc.
 
 =over 4
 
-=item * Bugs...?
+=item Two-pass parsing
 
-I'd like to say this module doesn't have bugs.  I don't know of any in
-this current version, because I've tried to fix those I've already
-found. Those who find bugs should email me.  Messages should include the
-code you ran that contains the bug, and your opinion on what's wrong
-with it.
+The parser uses a two-pass model: the first pass (via C<regex()>) checks
+structural validity; the second pass (triggered by C<root()>, C<visual()>,
+or C<parse()>) builds the object tree and checks semantics. Some errors
+(such as invalid backreferences) are only detected on the second pass.
 
-=item * Variable interpolation
+=item Variable interpolation
 
 This module parses I<regexes>, not Perl.  If you send a single-quoted
-string as a regex with a variable in it, that '$' will be interpreted as
-an anchor. If you want to include variables, use C<qr//>, or mix single-
+string as a regex with a variable in it, that C<$> will be interpreted as
+an anchor.  If you want to include variables, use C<qr//>, or mix single-
 and double-quoted strings in building your regex.
+
+=item Opaque constructs
+
+Code blocks C<(?{...})> and C<(??{...})> store their content as opaque
+strings.  Extended character classes C<(?[...])> are also stored as
+opaque strings -- their internal set operations are not decomposed into
+structured nodes.
 
 =back
 
