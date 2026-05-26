@@ -270,8 +270,14 @@ sub init {
       $name = $1;
     }
 
-    return $S->force_object(anyof_class => $S->force_object(prop => $name, 0)) if $cc;
-    return $S->object(prop => $name, 0);
+    # \p{^Name} is equivalent to \P{Name} (Perl negation syntax)
+    my $neg = 0;
+    if ($name =~ s/^\^//) {
+      $neg = 1;
+    }
+
+    return $S->force_object(anyof_class => $S->force_object(prop => $name, $neg)) if $cc;
+    return $S->object(prop => $name, $neg);
   });
 
   # nspace (not a space)
@@ -497,6 +503,12 @@ sub init {
       push @{ $S->{next} }, qw< minmod >;
       $S->error($S->RPe_BCURLY) if length($max) and $min > $max;
       return $S->object(quant => $min, $max);
+    }
+    # {,n} syntax (Perl 5.34+): upper bound only, min defaults to 0
+    if (${&Rx} =~ m{ \G , (\d+) \} }xgc) {
+      my $max = $1;
+      push @{ $S->{next} }, qw< minmod >;
+      return $S->object(quant => 0, $max);
     }
     return $S->object(exact => '{');
   });
