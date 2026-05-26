@@ -92,6 +92,15 @@ sub regex {
   $self->{next} = ['atom'];
   $self->{quotemeta} = 0;
 
+  # run tree-building pass — catches errors deferred from SIZE_ONLY
+  eval { $self->parse };
+  if ($@) {
+    $self->{errmsg} = $@;
+    delete $self->{stack};
+    $self->{tree} = undef;
+    return;
+  }
+
   return 1;
 }
 
@@ -187,6 +196,9 @@ sub awarn {
 sub next {
   my ($self) = @_;
   croak "no regex defined" unless &RxLEN;
+
+  # tree-building already completed
+  return unless $self->{stack};
 
   while (my $try = pop @{ $self->{next} }) {
     if (defined(my $r = $self->$try)) {

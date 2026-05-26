@@ -100,16 +100,16 @@ fails_regex('a{5,3}',    ($r->RPe_BCURLY)[0],  '{n,m} with n > m');
 fails_regex('a{10,0}',   ($r->RPe_BCURLY)[0],  '{10,0} with n > m');
 fails_regex('a{100,1}',  ($r->RPe_BCURLY)[0],  '{100,1} with n > m');
 
-# Quantifier follows nothing — deferred to visual pass
-fails_visual('*',         ($r->RPe_EQUANT)[0],  'bare * quantifier');
-fails_visual('+',         ($r->RPe_EQUANT)[0],  'bare + quantifier');
-fails_visual('?',         ($r->RPe_EQUANT)[0],   'bare ? quantifier');
+# Quantifier follows nothing — now caught in regex()
+fails_regex('*',         ($r->RPe_EQUANT)[0],  'bare * quantifier');
+fails_regex('+',         ($r->RPe_EQUANT)[0],  'bare + quantifier');
+fails_regex('?',         ($r->RPe_EQUANT)[0],   'bare ? quantifier');
 
-# Nested quantifiers (RPe_NESTED) — quantifier following quantifier
-fails_visual('a**',       ($r->RPe_NESTED)[0],   'nested quantifier **');
-fails_visual('a+*',       ($r->RPe_NESTED)[0],   'nested quantifier +*');
-fails_visual('a{2}{3}',   ($r->RPe_NESTED)[0],   'nested quantifier {2}{3}');
-fails_visual('a{2}*',     ($r->RPe_NESTED)[0],   'nested quantifier {2}*');
+# Nested quantifiers (RPe_NESTED) — now caught in regex()
+fails_regex('a**',       ($r->RPe_NESTED)[0],   'nested quantifier **');
+fails_regex('a+*',       ($r->RPe_NESTED)[0],   'nested quantifier +*');
+fails_regex('a{2}{3}',   ($r->RPe_NESTED)[0],   'nested quantifier {2}{3}');
+fails_regex('a{2}*',     ($r->RPe_NESTED)[0],   'nested quantifier {2}*');
 
 # Zero-width quantifier warnings (RPe_ZQUANT, RPe_NULNUL)
 # These are warnings (awarn), not errors — emitted during tree-building pass.
@@ -161,11 +161,11 @@ fails_regex('\\P',       ($r->RPe_EMPTYB)[0],   '\\P at end of string');
 ## 4. BACKREFERENCE ERRORS — RPe_BGROUP
 ##
 
-# Reference to nonexistent group — deferred to visual pass
-fails_visual('\\1',       ($r->RPe_BGROUP)[0],  '\\1 with no capture groups');
-fails_visual('(a)\\2',   ($r->RPe_BGROUP)[0],   '\\2 with only 1 capture group');
-fails_visual('\\g{5}',   ($r->RPe_BGROUP)[0],   '\\g{5} with no capture groups');
-fails_visual('\\g{-1}',  ($r->RPe_BGROUP)[0],   '\\g{-1} (relative) with no groups');
+# Reference to nonexistent group — now caught in regex()
+fails_regex('\\1',       ($r->RPe_BGROUP)[0],  '\\1 with no capture groups');
+fails_regex('(a)\\2',   ($r->RPe_BGROUP)[0],   '\\2 with only 1 capture group');
+fails_regex('\\g{5}',   ($r->RPe_BGROUP)[0],   '\\g{5} with no capture groups');
+fails_regex('\\g{-1}',  ($r->RPe_BGROUP)[0],   '\\g{-1} (relative) with no groups');
 
 # Valid backrefs should work
 parses_ok('(a)\\1', 'valid backref \\1 with 1 group');

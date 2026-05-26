@@ -1,6 +1,6 @@
 # Tests for \g{N} backreferences and /a/d/l/u modifier flags (Perl 5.10+/5.14+)
 
-use Test::More tests => 54;
+use Test::More tests => 57;
 use Regexp::Parser;
 ok(1, 'loaded');
 
@@ -74,15 +74,13 @@ ok( $r->regex('(?u)abc') );
 
 # --- error cases ---
 
-# \g{99} — nonexistent group should error on parse
-$r->regex('(a)\\g{99}');
-eval { $r->visual };
-like( $@, qr/nonexistent group/, '\\g{99} errors' );
+# \g{99} — nonexistent group should error on regex()
+ok( !$r->regex('(a)\\g{99}'), '\\g{99} errors' );
+like( $r->errmsg, qr/nonexistent group/, '\\g{99} error message' );
 
-# \g{-5} — relative ref too far back should error on parse
-$r->regex('(a)\\g{-5}');
-eval { $r->visual };
-like( $@, qr/nonexistent group/, '\\g{-5} errors' );
+# \g{-5} — relative ref too far back should error on regex()
+ok( !$r->regex('(a)\\g{-5}'), '\\g{-5} errors' );
+like( $r->errmsg, qr/nonexistent group/, '\\g{-5} error message' );
 
 # \g without number or braces should fail at regex() time
 ok( !$r->regex('(a)\\g'), '\\g alone fails' );
@@ -113,9 +111,8 @@ ok( $r->regex('(a)\\g{+1}(b)'), '\\g{+1} parse for tree inspection' );
 }
 
 # \g{+N} error for out-of-range
-$r->regex('(a)\\g{+5}');
-eval { $r->visual };
-like( $@, qr/nonexistent group/, '\\g{+5} with only 1 group errors' );
+ok( !$r->regex('(a)\\g{+5}'), '\\g{+5} with only 1 group errors' );
+like( $r->errmsg, qr/nonexistent group/, '\\g{+5} error message' );
 
 # --- \k{name} brace-delimited named backreference (Perl 5.32+) ---
 
