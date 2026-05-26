@@ -955,6 +955,24 @@ sub init {
       return $S->object(grouppn => $1, "'");
     }
 
+    # (?(R)...) — bare recursion condition
+    if (${&Rx} =~ m{ \G R \) }xgc) {
+      push @{ $S->{next} }, qw< ifthen|2 ifthen| ifthen_atom >;
+      return $S->object(groupr =>);
+    }
+
+    # (?(R1)...) — numbered recursion condition
+    if (${&Rx} =~ m{ \G R ( [1-9]\d* ) \) }xgc) {
+      push @{ $S->{next} }, qw< ifthen|2 ifthen| ifthen_atom >;
+      return $S->object(grouprn => $1);
+    }
+
+    # (?(R&name)...) — named recursion condition
+    if (${&Rx} =~ m{ \G R & ( [a-zA-Z_]\w* ) \) }xgc) {
+      push @{ $S->{next} }, qw< ifthen|2 ifthen| ifthen_atom >;
+      return $S->object(grouprname => $1);
+    }
+
     if (${&Rx} =~ m{ \G (.) }xgcs) {
       my $n = "$c$1";
       return $S->$n if $S->can($n);
