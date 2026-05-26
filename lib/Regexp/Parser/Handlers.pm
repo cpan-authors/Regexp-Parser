@@ -560,6 +560,8 @@ sub init {
         if (!&SIZE_ONLY and !$cc and $n != 0) {
           $v .= $1 while ${&Rx} =~ m{ \G (\d) }xgc;
           if ($v > 9 and $v > $S->{maxpar}) {
+            # leading digit 8 or 9 has no valid octal fallback
+            $S->error($S->RPe_BGROUP) if $n > 7;
             &RxPOS -= length $v;
             $v = "";
           }

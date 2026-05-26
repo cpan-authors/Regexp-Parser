@@ -167,6 +167,17 @@ fails_visual('(a)\\2',   ($r->RPe_BGROUP)[0],   '\\2 with only 1 capture group')
 fails_visual('\\g{5}',   ($r->RPe_BGROUP)[0],   '\\g{5} with no capture groups');
 fails_visual('\\g{-1}',  ($r->RPe_BGROUP)[0],   '\\g{-1} (relative) with no groups');
 
+# Multi-digit backrefs starting with 8 or 9 have no valid octal fallback
+# Perl rejects these as "Reference to nonexistent group"
+fails_visual('(a)\\99',  ($r->RPe_BGROUP)[0],   '\\99 with 1 group (not valid octal)');
+fails_visual('(a)\\80',  ($r->RPe_BGROUP)[0],   '\\80 with 1 group (not valid octal)');
+fails_visual('(a)\\89',  ($r->RPe_BGROUP)[0],   '\\89 with 1 group (not valid octal)');
+fails_visual('(a)\\98',  ($r->RPe_BGROUP)[0],   '\\98 with 1 group (not valid octal)');
+
+# Multi-digit numbers with valid octal leading digit fall back to octal
+parses_ok('(a)\\77',  '\\77 with 1 group — valid octal fallback (chr 63)');
+parses_ok('(a)\\100', '\\100 with 1 group — valid octal fallback (chr 64)');
+
 # Valid backrefs should work
 parses_ok('(a)\\1', 'valid backref \\1 with 1 group');
 parses_ok('(a)(b)\\2', 'valid backref \\2 with 2 groups');
