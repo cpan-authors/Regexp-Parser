@@ -1,5 +1,66 @@
 use NEXT;
 
+# Compute the maximum match length of a node sequence.
+# Returns -1 for unbounded (infinite) length.
+sub Regexp::Parser::_seq_max_length {
+  my $total = 0;
+  for my $node (@_) {
+    my $len = Regexp::Parser::_node_max_length($node);
+    return -1 if $len < 0;
+    $total += $len;
+  }
+  return $total;
+}
+
+sub Regexp::Parser::_node_max_length {
+  my ($node) = @_;
+  my $fam = $node->family;
+
+  return 0 if $node->{zerolen};
+
+  if ($fam eq 'exact') {
+    return scalar @{ $node->{data} };
+  }
+
+  if ($fam eq 'anyof' || $fam eq 'reg_any' || $fam eq 'digit'
+      || $fam eq 'alnum' || $fam eq 'space' || $fam eq 'prop'
+      || $fam eq 'lnbreak') {
+    return 1;
+  }
+
+  if ($fam eq 'quant') {
+    my $max = $node->max;
+    return -1 if $max eq '';
+    my $child_len = Regexp::Parser::_node_max_length($node->data);
+    return -1 if $child_len < 0;
+    return $child_len * $max;
+  }
+
+  if ($fam eq 'minmod' || $fam eq 'possessive') {
+    return Regexp::Parser::_node_max_length($node->data);
+  }
+
+  if ($fam eq 'branch') {
+    my $max = 0;
+    for my $alt (@{ $node->data }) {
+      my $alt_len = Regexp::Parser::_seq_max_length(@$alt);
+      return -1 if $alt_len < 0;
+      $max = $alt_len if $alt_len > $max;
+    }
+    return $max;
+  }
+
+  if ($fam eq 'ref') {
+    return -1;
+  }
+
+  if ($node->{down} && ref($node->data) eq 'ARRAY') {
+    return Regexp::Parser::_seq_max_length(@{ $node->data });
+  }
+
+  return 1;
+}
+
 {
   package Regexp::Parser::__object__;  
 
@@ -972,6 +1033,11 @@ use NEXT;
     else {
       $tree->[-1]->{zerolen} ||=
         !grep !$_->{zerolen}, @{ $tree->[-1]->{data} };
+    }
+
+    if ($tree->[-1]->can('dir') && $tree->[-1]->dir < 0) {
+      my $len = Regexp::Parser::_seq_max_length(@{ $tree->[-1]->{data} });
+      $rx->error($rx->RPe_LOOKBIG) if $len < 0 || $len > 255;
     }
 
     push @$tree, $self unless $self->omit;
